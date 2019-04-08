@@ -1,0 +1,140 @@
+{
+  "____comment": "",
+  "version": "eosio::abi/1.0",
+  "types": [
+{"new_type_name":"n","type":"name"},
+{"new_type_name":"a","type":"asset"},
+{"new_type_name":"u","type":"uint32"},
+{"new_type_name":"l","type":"uint64"},
+{"new_type_name":"s","type":"string"},
+{"new_type_name":"t","type":"time_point_sec"},
+{"new_type_name":"f","type":"float64"}
+  ],
+  "structs": [
+    {
+      "name": "empty",
+      "fields": [
+      ]
+    },
+    {
+      "name": "setting",
+      "fields": [
+{"name":"id","type":"l"},
+{"name":"time_shift","type":"l" },
+{"name":"eosdtcntract_account","type":"n"},
+{"name":"liquidator_account","type":"n"},
+{"name":"oraclize_account","type":"n"},
+{"name":"nutoken_account","type":"n"},
+{"name":"min_proposal_weight","type":"a"},
+{"name":"freeze_period","type":"u"},
+{"name":"min_participation","type":"f"},
+{"name":"success_margin","type":"f"},
+{"name":"top_holders_amount","type":"l"}
+      ]
+    },
+    {
+      "name": "settingset",
+      "fields": [
+{"name":"eosdtcntract_account","type":"n"},
+{"name":"liquidator_account","type":"n"},
+{"name":"oraclize_account","type":"n"},
+{"name":"nutoken_account","type":"n"},
+{"name":"min_proposal_weight","type":"a"},
+{"name":"freeze_period","type":"u"},
+{"name":"min_participation","type":"f"},
+{"name":"success_margin","type":"f"},
+{"name":"top_holders_amount","type":"l"}
+       ]
+    },
+    {
+      "name": "proposals",
+      "fields": [
+{"name":"proposal_name","type":"n"},
+{"name":"proposer","type":"n"},
+{"name":"title","type": "s"},
+{"name":"proposal_json","type":"s"},
+{"name":"created_at","type": "t"},
+{"name":"expires_at","type": "t"}
+       ]
+    },
+    {
+      "name": "propose",
+      "fields": [
+{"name":"proposer","type":"n"},
+{"name":"proposal_name","type":"n"},
+{"name":"title","type": "s"},
+{"name":"proposal_json","type":"s"},
+{"name":"expires_at","type": "t"}
+       ]
+    },
+    {
+      "name": "votes",
+      "fields": [
+{"name":"id","type":"l"},
+{"name":"proposal_name","type":"n"},
+{"name":"voter","type":"n"},
+{"name":"vote","type": "uint8"},
+{"name":"updated_at","type": "t"},
+{"name":"quantity","type": "a"}
+       ]
+    },
+    {
+      "name": "vote",
+      "fields": [
+{"name":"voter","type":"n"},
+{"name":"proposal_name","type":"n"}
+{"name":"vote","type": "uint8"}
+         ]
+    },
+    {
+      "name": "unvote",
+      "fields": [
+{"name":"voter","type":"n"},
+{"name":"proposal_name","type":"n"}
+       ]
+    },
+    {
+      "name": "unstake",
+      "fields": [
+ {"name":"voter","type":"n"},
+ {"name":"quantity","type":"a"}
+        ]
+    },
+    {
+      "name": "expire",
+      "fields": [
+{"name":"proposal_name","type":"n"}
+       ]
+    },
+    {
+      "name": "apply",
+      "fields": [
+{"name":"proposal_name","type":"n"}
+       ]
+    },
+    {
+      "name": "clnproposal",
+      "fields": [
+{"name":"proposal_name","type":"n"},
+{"name":"max_count","type":"l"}
+       ]
+    }
+  ],
+  "actions": [
+{"name":"settingset","type":"settingset"},
+{"name":"propose","type":"propose"},
+{"name":"vote","type":"vote"},
+{"name":"unvote","type":"unvote"},
+{"name":"unstake","type":"unstake"},
+{"name":"expire","type":"expire"},
+{"name":"apply","type":"apply"},
+{"name":"clnproposal","type":"clnproposal"}
+  ],
+  "tables": [
+{"name":"settings","type":"setting","index_type":"i64"},
+{"name":"proposals","type":"proposals","index_type":"i64"},
+{"name":"votes","type":"votes","index_type":"i64"}
+ ],
+  "ricardian_clauses": [],
+  "abi_extensions": []
+}
