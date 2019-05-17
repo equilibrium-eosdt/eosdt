@@ -136,7 +136,7 @@
          "type":"account",
          "index_type":"i64",
          "key_names":[
-            "currency"
+            "balance"
          ],
          "key_types":[
             "uint64"
@@ -147,7 +147,7 @@
          "type":"currency_stats",
          "index_type":"i64",
          "key_names":[
-            "currency"
+            "supply"
          ],
          "key_types":[
             "uint64"

@@ -1,5 +1,8 @@
 #include "applicator.hpp"
+
+
 class [[eosio::contract("eosdtgovernc")]] eosdtgovernc : public appliator {
+
 public:
     eosdtgovernc(ds_account receiver, ds_account code, eosio::datastream<const char *> ds) :
             appliator(receiver, code, ds) {

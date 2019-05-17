@@ -115,6 +115,7 @@ struct oracle_query
     ds_checksum checksumm;
     ds_account payer;
     ds_time moment;
+    uint8_t is_eos_for_symbol;
 
     uint64_t primary_key() const {
 #ifdef COMMON
@@ -126,7 +127,7 @@ struct oracle_query
 };
 
 #ifdef COMMON
-FC_REFLECT(oracle_query, (checksumm)(asset_symbol)(payer)(moment));
+FC_REFLECT(oracle_query, (checksumm)(asset_symbol)(payer)(moment)(is_eos_for_symbol));
 #endif
 
 struct oracle_rate

@@ -43,7 +43,8 @@
       "name": "refreshutil",
       "fields": [
 {"name":"payer","type":"n"},
-{"name":"symbol","type":"c"}
+{"name":"symbol","type":"c"},
+{"name":"is_eos_for_symbol","type":"uint8"}
       ]
     },
     {
@@ -60,7 +61,8 @@
 {"name":"asset_symbol","type":"c"},
 {"name":"checksumm","type":"checksum256"},
 {"name":"payer","type":"n"},
-{"name":"moment","type":"t"}
+{"name":"moment","type":"t"},
+{"name":"is_eos_for_symbol","type":"uint8"}
         ]
     },
     {
@@ -81,6 +83,14 @@
         ]
     },
     {
+        "name": "symbforsymb",
+        "base": "",
+        "fields": [
+{"name":"token_symbol","type": "c"},
+{"name":"is_eos_for_symbol","type": "uint8"}
+        ]
+    },
+    {
         "name": "onerror",
         "base": "",
         "fields": [
@@ -94,15 +104,16 @@
 {"name":"setlistdate","type":"setlistdate"},
 {"name":"refreshutil","type":"refreshutil"},
 {"name":"callback","type":"callback"},
-{"name":"masterefresh","type":"coin"},
-{"name":"slaverefresh","type":"coin"},
+{"name":"masterefresh","type":"symbforsymb"},
+{"name":"slaverefresh","type":"symbforsymb"},
 {"name":"stoprefresh","type":"coin"},
-{"name":"startrefresh","type":"coin"},
-{"name":"onerror","type":"onerror"}
+{"name":"startrefresh","type":"symbforsymb"},
+{"name":"onerror","type":"onerror"},
+{"name":"queriesdel","type":"coin"}
   ],
   "tables": [
-{"name":"orasettings","type":"orasettings","index_type":"i64","key_names":["id"],"key_types":["l"]},
-{"name":"queries","type":"queries","index_type":"i64","key_names":["asset_symbol"],"key_types":["symbol"]},
-{"name":"oracle.rates","type":"oracle.rates","index_type":"i64","key_names":["token"],"key_types":["a"]}
+{"name":"orasettings","type":"orasettings","index_type":"i64","key_names":["id"],"key_types":["uint64"]},
+{"name":"queries","type":"queries","index_type":"i64","key_names":["asset_symbol"],"key_types":["uint64"]},
+{"name":"oracle.rates","type":"oracle.rates","index_type":"i64","key_names":["rate"],"key_types":["uint64"]}
   ]
 }

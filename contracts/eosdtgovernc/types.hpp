@@ -117,7 +117,7 @@
 #define NEED_TO_SET_UP "need to set up(eosdtgovernc)"
 #define SETTLEMENT_TIMING "settlement timing"
 
-#define SETTINGS "settings"
+#define SETTINGS "govsettings"
 
 struct account {
     ds_asset balance;
@@ -153,8 +153,8 @@ FC_REFLECT(currency_stats, (supply)(max_supply)(issuer));
 #endif
 
 
-struct setting {
-    ds_ulong id;
+struct govsetting {
+    ds_ulong setting_id;
     ds_long time_shift;
     ds_account eosdtcntract_account;
     ds_account liquidator_account;
@@ -165,12 +165,15 @@ struct setting {
     double min_participation;
     double success_margin;
     ds_ulong top_holders_amount;
+    double min_threshold;
 
-    ds_ulong primary_key() const { return id; }
+    ds_ulong primary_key() const { return setting_id; }
 };
 
 #ifdef COMMON
-FC_REFLECT(setting, (id)(time_shift)(eosdtcntract_account)(liquidator_account)(oraclize_account)(nutoken_account)(min_proposal_weight)(freeze_period)(min_participation)(success_margin)(top_holders_amount));
+FC_REFLECT(govsetting, (setting_id)(time_shift)(eosdtcntract_account)(liquidator_account)(oraclize_account)
+(nutoken_account)(min_proposal_weight)(freeze_period)(min_participation)(success_margin)(top_holders_amount)
+(min_threshold));
 #endif
 
 struct oracle_rate {
@@ -205,6 +208,7 @@ struct proposal {
     ds_string proposal_json;
     ds_time created_at;
     ds_time expires_at;
+    uint8_t proposal_type;
 
     auto primary_key() const { return proposal_name.value; }
 
@@ -213,7 +217,7 @@ struct proposal {
 };
 
 #ifdef COMMON
-FC_REFLECT(proposal, (proposal_name)(proposer)(title)(proposal_json)(created_at)(expires_at));
+FC_REFLECT(proposal, (proposal_name)(proposer)(title)(proposal_json)(created_at)(expires_at)(proposal_type));
 #endif
 
 struct voter {
@@ -243,6 +247,7 @@ struct vote {
     uint8_t vote;
     ds_time updated_at;
     ds_asset quantity;
+    ds_string vote_json;
 
     auto primary_key() const { return id; }
 
@@ -252,7 +257,7 @@ struct vote {
 };
 
 #ifdef COMMON
-FC_REFLECT(vote, (id)(proposal_name)(voter)(vote)(updated_at)(quantity));
+FC_REFLECT(vote, (id)(proposal_name)(voter)(vote)(updated_at)(quantity)(vote_json));
 #endif
 
 #endif

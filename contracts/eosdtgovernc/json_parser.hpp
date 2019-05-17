@@ -1,4 +1,6 @@
+
 class json_parser {
+
 public:
     enum parse_status : uint8_t {
         STATUS_OK = 0,
@@ -9,6 +11,7 @@ public:
         STATUS_ERR_KEY = 5,
         STATUS_ERR_VALUE = 6,
     };
+
     enum parse_value : uint8_t {
         VALUE_NONE = 0,
         VALUE_STRING = 1,
@@ -17,14 +20,18 @@ public:
         VALUE_INT = 4,
         VALUE_ASSET = 5,
         VALUE_DATETIME = 6,
+        VALUE_ARRAY = 7,
     };
+
     struct cmp_str {
         bool operator()(char const *a, char const *b) const {
             return std::strcmp(a, b) < 0;
         }
     };
+
     typedef std::map<const char *, parse_value, cmp_str> k_v_map;
     typedef std::pair<const char *, parse_value> k_v_pair;
+
 private:
     const char *_json;
     k_v_map _key_values;
@@ -38,10 +45,12 @@ private:
     uint8_t _out_precision;
     double _out_double;
     ds_int _out_int;
+    std::vector<std::string> _out_array;
     ds_asset _out_asset;
     ds_account _out_name;
     ds_time _out_time;
     char _out_key[500];
+
 public:
     json_parser(const char *json, const k_v_map &key_values) {
         _json = json;
@@ -54,9 +63,11 @@ public:
         _value_end = 0;
         _has_values = false;
     }
+
     bool is_whitespace(char c) {
         return c == '\t' || c == '\r' || c == '\n' || c == ' ';
     }
+
     bool skip_whitespace() {
         auto result = false;
         for (; _json[_pos] != '\0'; _pos++) {
@@ -68,6 +79,7 @@ public:
         }
         return result;
     }
+
     bool skip_char(char c) {
         if (_json[_pos] != c) {
             return false;
@@ -75,6 +87,7 @@ public:
         _pos++;
         return true;
     }
+
     bool skip_colon() {
         skip_whitespace();
         if (!skip_char(':')) {
@@ -83,8 +96,10 @@ public:
         skip_whitespace();
         return true;
     }
+
     parse_status parse_key() {
         skip_whitespace();
+
         if (!skip_char('"')) {
             return _status = STATUS_ERR_FMT;
         }
@@ -99,6 +114,7 @@ public:
         }
         return STATUS_OK;
     }
+
     bool skip_letter() {
         if (_json[_pos] < 'A' || _json[_pos] > 'Z') {
             return false;
@@ -106,6 +122,7 @@ public:
         _pos++;
         return true;
     }
+
     bool parse_string() {
         if (!skip_char('"')) {
             return false;
@@ -118,6 +135,7 @@ public:
         }
         return true;
     }
+
     bool parse_positive_int(ds_int &out_int) {
         auto result = false;
         out_int = 0;
@@ -127,6 +145,7 @@ public:
         }
         return result;
     }
+
     bool parse_int() {
         _value_pos = _pos;
         bool neg = skip_char('-');
@@ -137,6 +156,7 @@ public:
         _value_end = _pos;
         return true;
     }
+
     bool parse_double() {
         _value_pos = _pos;
         bool neg = skip_char('-');
@@ -166,6 +186,7 @@ public:
         _value_end = _pos;
         return true;
     }
+
     bool parse_time() {
         if (!skip_char('"')) {
             return false;
@@ -175,26 +196,31 @@ public:
             return false;
         }
         if (!skip_char('-')) {
+
         }
         if (!parse_positive_int(tm.tm_mon) || tm.tm_mon < 1 || tm.tm_mon > 12) {
             return false;
         }
         if (!skip_char('-')) {
+
         }
         if (!parse_positive_int(tm.tm_mday) || tm.tm_mday < 1 || tm.tm_mday > 31) {
             return false;
         }
         if (!skip_char('T')) {
+
         }
         if (!parse_positive_int(tm.tm_hour) || tm.tm_hour < 0 || tm.tm_hour > 23) {
             return false;
         }
         if (!skip_char(':')) {
+
         }
         if (!parse_positive_int(tm.tm_min) || tm.tm_min < 0 || tm.tm_min > 59) {
             return false;
         }
         if (!skip_char(':')) {
+
         }
         if (!parse_positive_int(tm.tm_sec) || tm.tm_sec < 0 || tm.tm_sec > 59) {
             return false;
@@ -223,6 +249,41 @@ public:
         _out_time += (tm.tm_year-1970)*365*24*60*60;
         return true;
     }
+
+    bool parse_array()
+    {
+        _out_array.clear();
+        skip_whitespace();
+        if (!skip_char('[')) {
+            return false;
+        }
+        skip_whitespace();
+        if(skip_char(']'))
+        {
+            return true;
+        }
+        while(true)
+        {
+            if(!parse_string())
+            {
+                return false;
+            }
+            auto str = ds_string(_json, _value_pos, _value_end - _value_pos);
+            _out_array.push_back(str);
+            skip_whitespace();
+            if(skip_char(']'))
+            {
+                return true;
+            }
+            skip_whitespace();
+            if(!skip_char(','))
+            {
+                return false;
+            }
+            skip_whitespace();
+        }
+    }
+
     bool parse_asset() {
         _value_pos = _pos;
         if (!parse_double()) {
@@ -244,6 +305,7 @@ public:
         _value_end = _pos;
         return true;
     }
+
     bool parse_name() {
         if (parse_string()) {
             std::string_view str = ds_string(_json, _value_pos, _value_end - _value_pos);
@@ -252,6 +314,8 @@ public:
         }
         return false;
     }
+
+
     parse_value find_key() {
         auto itr = _key_values.find(get_out_key());
         if (itr != _key_values.end()) {
@@ -259,6 +323,7 @@ public:
         }
         return VALUE_NONE;
     }
+
     parse_status parse() {
         if (_pos == 0) {
             skip_whitespace();
@@ -291,6 +356,9 @@ public:
                 case VALUE_DATETIME:
                     s = parse_time();
                     break;
+                case VALUE_ARRAY:
+                    s = parse_array();
+                    break;
                 default:
                     ds_print("\r\nparse key error position:%", _key_pos);
                     break;
@@ -314,6 +382,7 @@ public:
         _status = STATUS_ERR_NULL;
         return _status;
     }
+
     parse_status validate() {
         parse_status s;
         do {
@@ -321,33 +390,46 @@ public:
         } while (STATUS_OK == s);
         return s;
     }
+
     const char *get_value() {
         return _json + _value_pos;
     }
+
     int get_value_len() {
         return _value_end - _value_pos;
     }
+
     double get_out_double() {
         return _out_double;
     }
+
+    std::vector<std::string> get_out_array() {
+        return _out_array;
+    }
+
     ds_int get_out_int() {
         return _out_int;
     }
+
     ds_asset get_out_asset() {
         return _out_asset;
     }
+
     ds_account get_out_name() {
         return _out_name;
     }
+
     ds_time get_out_time() {
         return _out_time;
     }
+
     const char *get_out_key() {
         ds_assert(_key_end - _key_pos < 500, "error parse json key");
         std::memcpy(_out_key, _json + _key_pos, _key_end - _key_pos);
         _out_key[_key_end - _key_pos] = '\0';
         return _out_key;
     }
+
     bool is_key_equals(const char *key) {
         return strlen(key) == _key_end - _key_pos && strncmp(_json + _key_pos, key, _key_end - _key_pos) == 0;
     }

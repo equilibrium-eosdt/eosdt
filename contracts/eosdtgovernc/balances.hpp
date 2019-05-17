@@ -1,9 +1,12 @@
 #include "oracle.hpp"
+
 class balances : public oracle {
+
 private:
     typedef eosio::multi_index<"accounts"_n, account> accounts_table;
     typedef eosio::multi_index<"stat"_n, currency_stats> currency_stats_table;
     typedef eosio::multi_index<"voters"_n, voter> voters_table;
+
 protected:
     auto ctract_by_symbol(const ds_symbol &symbol) {
         if (symbol == UTILITY_SYMBOL) {
@@ -11,6 +14,7 @@ protected:
         }
         return EOSCTRACT;
     }
+
     auto supply_get(const ds_symbol &symbol)
     {
         auto id = symbol.code().raw();
@@ -21,6 +25,7 @@ protected:
         }
         return itr->supply;
     }
+
     auto balance_get(const ds_account &account, const ds_symbol &symbol) {
         accounts_table accounts(ctract_by_symbol(symbol), account.value);
         auto itr = accounts.find(symbol.code().raw());
@@ -29,11 +34,13 @@ protected:
         }
         return itr->balance;
     }
+
     ds_asset voting_amount_get(const ds_account &owner, const ds_symbol &sym) const {
         voters_table voters(_self, owner.value);
         const auto itr = voters.find(sym.code().raw());
         return itr == voters.end() ? ds_asset(0, sym) : itr->voting_amount;
     }
+
     void voting_amount_sub(ds_account owner, ds_asset value) {
         voters_table voters(_self, owner.value);
         const auto &from = voters.get(value.symbol.code().raw(), "no balance object found");
@@ -46,6 +53,7 @@ protected:
             });
         }
     }
+
     void voting_amount_add(ds_account owner, ds_asset value, ds_account ram_payer) {
         voters_table voters(_self, owner.value);
         auto to = voters.find(value.symbol.code().raw());
@@ -59,6 +67,7 @@ protected:
             });
         }
     }
+
     void trans(const ds_account &to, const ds_asset &quantity, const ds_string &memo) {
         auto ctract = ctract_by_symbol(quantity.symbol);
         auto balance = balance_get(_self, quantity.symbol);
@@ -78,6 +87,8 @@ public:
     balances(ds_account receiver, ds_account code, eosio::datastream<const char *> ds) :
             oracle(receiver, code, ds) {
     }
+
+
     void transfer(const ds_account &from,
                   const ds_account &to,
                   ds_asset &quantity,
@@ -89,7 +100,12 @@ public:
         auto ctract_for_symbol = ctract_by_symbol(quantity.symbol);
         ds_assert(ctract_for_symbol == _code, "wrong contract % for asset: % expected: %.", _code, quantity,
                   ctract_for_symbol);
+
         voting_amount_add(from, quantity, _self);
         PRINT_FINISHED("transfer"_n)
     }
+
+
+
+
 };
