@@ -24,9 +24,10 @@ protected:
             ds_asset liquidation_price;
             double nut_auct_ratio;
             double nut_discount;
-            double reserve_ratio;
+            double profit_factor;
             ds_uint vote_period;
             ds_uint stake_period;
+            double reserve_ratio;
 
             ds_ulong primary_key() const { return setting_id; }
         };
@@ -69,8 +70,8 @@ protected:
                 apply_settings.nut_discount = parser.get_out_double();
                 settings_changed = true;
             }
-            else if (parser.is_key_equals("eosdtcntract.reserve_ratio")) {
-                apply_settings.reserve_ratio = parser.get_out_double();
+            else if (parser.is_key_equals("eosdtcntract.profit_factor")) {
+                apply_settings.profit_factor = parser.get_out_double();
                 settings_changed = true;
             }
             else if (parser.is_key_equals("eosdtcntract.vote_period")) {
@@ -79,6 +80,10 @@ protected:
             }
             else if (parser.is_key_equals("eosdtcntract.stake_period")) {
                 apply_settings.stake_period = parser.get_out_double();
+                settings_changed = true;
+            }
+            else if (parser.is_key_equals("eosdtcntract.reserve_ratio")) {
+                apply_settings.reserve_ratio = parser.get_out_double();
                 settings_changed = true;
             }
         }
@@ -99,9 +104,10 @@ protected:
                                     std::optional<double>(apply_settings.liquidator_discount),
                                     std::optional<double>(apply_settings.nut_auct_ratio),
                                     std::optional<double>(apply_settings.nut_discount),
-                                    std::optional<double>(apply_settings.reserve_ratio),
+                                    std::optional<double>(apply_settings.profit_factor),
                                     std::optional<ds_uint>(apply_settings.vote_period),
-                                    std::optional<ds_uint>(apply_settings.stake_period))
+                                    std::optional<ds_uint>(apply_settings.stake_period),
+                                    std::optional<double>(apply_settings.reserve_ratio))
             ).send();
         }
     }

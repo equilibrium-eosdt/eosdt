@@ -5,11 +5,6 @@ static bool ne(double l, double r) {
     return l < r || r < l;
 }
 
-bool operator==(const capi_checksum256 &l,const capi_checksum256 &r)
-{
-    return *(__int128_t*)l.hash==*(__int128_t*)r.hash && *(__int128_t*)(l.hash+16)==*(__int128_t*)(r.hash+16);
-}
-
 static double to_double(const ds_asset &asset) {
     auto result = 1;
     for (ds_ulong i = 0; i < asset.symbol.precision(); i++)result *= 10;
@@ -83,12 +78,13 @@ static char* write_value(char *r, const char *l, const uint128_t &v) {
     return r;
 }
 
-static char* write_value(char *r, const char *l, const capi_checksum256 &v) {
+static char* write_value(char *r, const char *l, const eosio::checksum256 &v) {
     if (r+64>l) {
         return r;
     }
+    auto vhash = v.extract_as_byte_array();
     for (auto i = 0; i < 32; i++) {
-        auto b = v.hash[i];
+        auto b = vhash[i];
         auto f = b >> 4;
         *(r++) = char(f + (f < 10 ? 48 : 55));
         auto s = b % 16;
@@ -210,11 +206,9 @@ static char *write_value(char *r, const char *l, const ds_account &a) {
     if (r + 13 > l) return r;
     for (ds_uint i = 0; i < 60; i += 5) {
         auto c = v >> (59 - i) & 31;
-        if (c == 0) {
-            break;
-        }
         *(r++) = char_map[c];
     }
+    while(*(r-1)=='.')r--;
     return r;
 }
 
@@ -281,7 +275,7 @@ static void ds_print(const char *f, t0 v0 = nullptr, t1 v1 = nullptr, t2 v2 = nu
                      t3 v3 = nullptr, t4 v4 = nullptr, t5 v5 = nullptr,
                      t6 v6 = nullptr, t7 v7 = nullptr, t8 v8 = nullptr, t9 v9 = nullptr) {
 
-    prints(write_format_string(f, v0, v1, v2, v3, v4, v5, v6, v7, v8, v9));
+    eosio::print(write_format_string(f, v0, v1, v2, v3, v4, v5, v6, v7, v8, v9));
 }
 
 
@@ -294,7 +288,7 @@ static void ds_assert(bool test, const char *f, t0 v0 = nullptr, t1 v1 = nullptr
     if (test) {
         return;
     }
-    eosio_assert(false, write_format_string(f, v0, v1, v2, v3, v4, v5, v6, v7, v8, v9));
+    eosio::check(false, write_format_string(f, v0, v1, v2, v3, v4, v5, v6, v7, v8, v9));
 }
 
 

@@ -32,26 +32,27 @@ protected:
                 quantity_no += itr->quantity;
                 continue;
             }
-            auto parser = (proposal.proposal_type == 1)
-                    ? get_json_parser(itr->vote_json.c_str())
-                    : get_json_parser_for_bpvotes(itr->vote_json.c_str());
-            auto parse_status = parser.parse();
-            for ( ; parse_status == json_parser::STATUS_OK; parse_status = parser.parse()) {
-                if (parser.is_key_equals("eosdtcntract.producers")) {
-                    for(auto producer:parser.get_out_array())
-                    {
-                        auto map_itr = vote_producers.find(producer);
-                        auto quantity = itr->quantity;
-                        if(map_itr==vote_producers.end()) {
-                            vote_producers.insert(std::pair<std::string,ds_asset>(producer,quantity));
-                        }
-                        else {
-                            map_itr->second += quantity;
+            if(proposal.proposal_type == 2)
+            {
+                auto parser = get_json_parser_for_bpvotes(itr->vote_json.c_str());
+                auto parse_status = parser.parse();
+                for ( ; parse_status == json_parser::STATUS_OK; parse_status = parser.parse()) {
+                    if (parser.is_key_equals("eosdtcntract.producers")) {
+                        for(auto producer:parser.get_out_array())
+                        {
+                            auto map_itr = vote_producers.find(producer);
+                            auto quantity = itr->quantity;
+                            if(map_itr==vote_producers.end()) {
+                                vote_producers.insert(std::pair<std::string,ds_asset>(producer,quantity));
+                            }
+                            else {
+                                map_itr->second += quantity;
+                            }
                         }
                     }
                 }
+                ds_assert(parse_status == json_parser::STATUS_END,"\r\nvote_json is invalid, code %", parse_status);
             }
-            ds_assert(parse_status == json_parser::STATUS_END,"\r\nvote_json is invalid, code %", parse_status);
         }
         auto threshold = quantity_all * settings_get().min_threshold;
         auto map_itr = vote_producers.begin();

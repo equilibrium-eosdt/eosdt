@@ -12,16 +12,23 @@
 #define ds_stamp eosio::chain::block_timestamp_type
 
 #else
-#include <eosiolib/eosio.hpp>
-#include <eosiolib/asset.hpp>
-#include <eosiolib/transaction.hpp>
+#include <eosio/transaction.hpp>
+#include <eosio/crypto.hpp>
+#include <eosio/eosio.hpp>
+#include <eosio/print.hpp>
+#include <eosio/time.hpp>
+#include <eosio/symbol.hpp>
+#include <eosio/asset.hpp>
+#include <stdio.h>
+#include <vector>
+#include <cmath>
 
 
 #define ds_time eosio::time_point_sec
 #define ds_account eosio::name
 #define ds_symbol eosio::symbol
 #define ds_asset eosio::asset
-#define ds_checksum capi_checksum256
+#define ds_checksum eosio::checksum256
 #define ds_stamp eosio::block_timestamp
 #define N(X) name{#X}
 #endif
@@ -152,12 +159,15 @@ struct oracle_rate
 FC_REFLECT(oracle_rate, (rate)(last_update)(master_update)(slave_update)(onerror_update));
 #endif
 
+#ifndef ORACLIZEAPI_H
 struct cbaddr
 {
     ds_account sender;
 
     uint64_t primary_key() const { return sender.value; }
 };
+
+#endif
 #ifdef COMMON
 FC_REFLECT(cbaddr, (sender) );
 #endif
@@ -220,5 +230,9 @@ FC_REFLECT(global, (max_ram_size)(total_ram_bytes_reserved)(total_ram_stake)
             (pervote_bucket)(perblock_bucket)(total_unpaid_blocks)(total_activated_stake)(thresh_activated_stake_time)
             (last_producer_schedule_size)(total_producer_vote_weight)(last_name_close) );
 #endif
+
+inline uint32_t now() {
+    return current_time_point().sec_since_epoch();
+}
 
 #endif

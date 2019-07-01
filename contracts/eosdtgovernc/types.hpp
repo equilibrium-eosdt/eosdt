@@ -10,6 +10,7 @@
 #define ds_asset eosio::chain::asset
 #define ds_symbol eosio::chain::symbol
 #define ds_checksum eosio::chain::checksum256_type
+#define ds_public_key eosio::chain::public_key_type
 
 #else
 
@@ -22,6 +23,7 @@
 #define ds_symbol eosio::symbol
 #define ds_asset eosio::asset
 #define ds_checksum capi_checksum256
+#define ds_public_key eosio::public_key
 #define N(X) name{#X}
 #endif
 
@@ -47,6 +49,8 @@
 
 #define EOS_SYMBOL_STR "EOS"
 #define EOS_SYMBOL_DECIMAL 4
+#define REX_SYMBOL_STR "REX"
+#define REX_SYMBOL_DECIMAL 4
 #define USD_SYMBOL_STR "USD"
 #define USD_SYMBOL_DECIMAL 4
 #define STABLE_SYMBOL_STR "EOSDT"
@@ -75,6 +79,8 @@
 #define EOSDTFORUM N(eosdtgovernc)
 #define EOS_SYMBOL ds_symbol(EOS_SYMBOL_DECIMAL,EOS_SYMBOL_STR)
 #define EOS_SYMBOL_VALUE ::eosio::chain::string_to_symbol_c(EOS_SYMBOL_DECIMAL,EOS_SYMBOL_STR)
+#define REX_SYMBOL ds_symbol(REX_SYMBOL_DECIMAL,REX_SYMBOL_STR)
+#define REX_SYMBOL_VALUE ::eosio::chain::string_to_symbol_c(REX_SYMBOL_DECIMAL,REX_SYMBOL_STR)
 #define USD_SYMBOL ds_symbol(USD_SYMBOL_DECIMAL,USD_SYMBOL_STR)
 #define USD_SYMBOL_VALUE ::eosio::chain::string_to_symbol_c(USD_SYMBOL_DECIMAL,USD_SYMBOL_STR)
 #define STABLE_SYMBOL ds_symbol(STABLE_SYMBOL_DECIMAL,STABLE_SYMBOL_STR)
@@ -258,6 +264,23 @@ struct vote {
 
 #ifdef COMMON
 FC_REFLECT(vote, (id)(proposal_name)(voter)(vote)(updated_at)(quantity)(vote_json));
+#endif
+
+
+struct producer_info {
+    ds_account          owner;
+    double              total_votes;
+    ds_public_key   producer_key;
+    bool                is_active;
+    ds_string           url;
+    ds_uint             unpaid_blocks;
+    ds_ulong            last_claim_time;
+    uint16_t            location;
+    auto primary_key() const { return owner.value; }
+};
+#ifdef COMMON
+FC_REFLECT( producer_info, (owner)(total_votes)(producer_key)(is_active)(url)
+        (unpaid_blocks)(last_claim_time)(location))
 #endif
 
 #endif

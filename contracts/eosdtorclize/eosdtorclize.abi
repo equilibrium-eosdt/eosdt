@@ -6,7 +6,8 @@
 {"new_type_name":"c","type":"symbol"},
 {"new_type_name":"t","type":"time_point_sec"},
 {"new_type_name":"l","type":"uint64"},
-{"new_type_name":"i","type":"int32"}
+{"new_type_name":"i","type":"int32"},
+{"new_type_name":"s","type":"string"}
   ],
   "structs": [
     {
@@ -50,7 +51,7 @@
     {
       "name": "callback",
       "fields": [
-{"name":"queryId","type":"checksum256"},
+{"name":"queryId","type":"s"},
 {"name":"result","type":"uint8[]"},
 {"name":"proof","type":"uint8[]"}
       ]
@@ -117,3 +118,4 @@
 {"name":"oracle.rates","type":"oracle.rates","index_type":"i64","key_names":["rate"],"key_types":["uint64"]}
   ]
 }
+

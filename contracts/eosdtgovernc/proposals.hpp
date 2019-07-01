@@ -34,7 +34,7 @@ protected:
         key_values.insert(json_parser::k_v_pair("eosdtcntract.liquidator_discount", json_parser::VALUE_DOUBLE));
         key_values.insert(json_parser::k_v_pair("eosdtcntract.nut_auct_ratio", json_parser::VALUE_DOUBLE));
         key_values.insert(json_parser::k_v_pair("eosdtcntract.nut_discount", json_parser::VALUE_DOUBLE));
-        key_values.insert(json_parser::k_v_pair("eosdtcntract.reserve_ratio", json_parser::VALUE_DOUBLE));
+        key_values.insert(json_parser::k_v_pair("eosdtcntract.profit_factor", json_parser::VALUE_DOUBLE));
         key_values.insert(json_parser::k_v_pair("eosdtcntract.vote_period", json_parser::VALUE_INT));
         key_values.insert(json_parser::k_v_pair("eosdtcntract.stake_period", json_parser::VALUE_INT));
 
@@ -69,21 +69,35 @@ protected:
     }
 
 
-
 public:
     proposals(ds_account receiver, ds_account code, eosio::datastream<const char *> ds) :
             balances(receiver, code, ds) {
     }
 
 
-    bool validate_proposal_json(const char *json, uint8_t proposal_type) {
-        auto result = true;
-        auto parser = (proposal_type == 1)
-                ? get_json_parser(json)
-                : get_json_parser_for_bpvotes(json);
+    bool validate_proposal_json_main(const char *json) {
+        auto parser = get_json_parser(json);
         auto s = parser.validate();
-        ds_assert(s == json_parser::STATUS_END, "\r\nproposal_json for type % is invalid, code %", proposal_type, s);
-        return result;
+        ds_assert(s == json_parser::STATUS_END, "\r\nproposal_json for type main is invalid, code %", s);
+        return true;
+    }
+
+    bool validate_proposal_json_bpvoting(const char *json) {
+        auto parser = get_json_parser_for_bpvotes(json);
+        auto parse_status = parser.parse();
+        eosio::multi_index<"producers"_n, producer_info> producers("eosio"_n, ("eosio"_n).value);
+        for (; parse_status == json_parser::STATUS_OK; parse_status = parser.parse()) {
+            if (parser.is_key_equals("eosdtcntract.producers")) {
+                for (auto producer_name:parser.get_out_array()) {
+                    auto producer = producers.find((eosio::name{producer_name}).value);
+                    ds_assert(producer != producers.end(), "producer: '%' did not register.", producer_name);
+                }
+            }
+        }
+        ds_assert(parse_status == json_parser::STATUS_END, "\r\nproposal_json for type bpvoting is invalid, code %",
+                  parse_status);
+
+        return true;
     }
 
     void propose(
@@ -117,7 +131,12 @@ public:
         ds_assert(proposal_name.length() > 2, "proposal_name should be at least 3 characters long.");
         ds_assert(title.size() < 1024, "title should be less than 1024 characters long.");
         ds_assert(proposal_json.size() < 32768, "proposal_json should be less than 32768 characters long.");
-        ds_assert(validate_proposal_json(proposal_json.c_str(), proposal_type), "proposal_json is invalid");
+        if (proposal_type == 1) {
+            validate_proposal_json_main(proposal_json.c_str());
+        } else if (proposal_type == 2) {
+            validate_proposal_json_bpvoting(proposal_json.c_str());
+        }
+
 
         ds_assert(expires_at > time_get(), "expires_at (%) must be a value in the future.", expires_at);
 

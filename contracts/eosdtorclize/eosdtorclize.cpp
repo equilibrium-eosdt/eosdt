@@ -1,25 +1,15 @@
 #include "settings.hpp"
-
-
 class [[eosio::contract("eosdtorclize")]] eosdtorclize : public settings {
-
 private:
     typedef eosio::multi_index<"queries"_n, oracle_query> oracle_queries_type;
     typedef const oracle_queries_type::const_iterator &oracle_queries_iterator;
-
-
     typedef multi_index<"oracle.rates"_n, oracle_rate> oracle_rates_type;
     typedef const oracle_rates_type::const_iterator &oracle_rates_iterator;
-
-
 protected:
-
     auto time_get() {
         auto time = now();
         return time_point_sec(time);
     }
-
-
     void rates_set(const ds_string &data) {
         oracle_rates_type oracle_rates(_self, _self.value);
         for (auto rate_itr = oracle_rates.begin(); rate_itr != oracle_rates.end(); rate_itr++) {
@@ -35,7 +25,6 @@ protected:
             }
         }
     }
-
     void rate_set(const ds_symbol &token_symbol, const bool is_eos_for_symbol, const ds_string &data) {
         PRINT_STARTED("rateset"_n)
         oracle_rates_type oracle_rates(_self, _self.value);
@@ -48,18 +37,15 @@ protected:
         else {
             rate = ds_asset(pow(10.0, UTILITY_SYMBOL_DECIMAL) / to_ldouble(parsed), UTILITY_SYMBOL);
         }
-
         ds_print("\r\nparsed: %, setting rate: %", parsed, rate);
         if (rate.amount <= 0) {
             ds_print("\r\nrateset hasn't succeded");
             return;
         }
-
         auto set = [&](auto &row) {
             row.last_update = time_get();
             row.rate = rate;
         };
-
         auto rate_itr = oracle_rates.find(token_symbol.raw());
         if (rate_itr == oracle_rates.end()) {
             ds_print("\r\nemplace rate: %", rate);
@@ -68,20 +54,15 @@ protected:
             ds_print("\r\nchange rate: % => %", rate_itr->rate, rate);
             oracle_rates.modify(rate_itr, _self, set);
         }
-
-
         PRINT_FINISHED("rateset"_n)
     }
-
     struct queries_del {
         ds_symbol asset_symbol;
         ds_checksum checksumm;
         ds_account payer;
         ds_time moment;
-
         uint64_t primary_key() const { return asset_symbol.raw(); }
     };
-
     bool has_recent_delete_old(const ds_symbol &symbol) {
         multi_index<"queries"_n, queries_del> oraclqueries(_self, _self.value);
         auto result = false;
@@ -98,16 +79,16 @@ protected:
         ds_print("\r\nhas_recent_delete_old finished %", result);
         return result;
     }
-
     static auto equal(ds_checksum l, ds_checksum r) {
+        auto lhash = l.extract_as_byte_array();
+        auto rhash = r.extract_as_byte_array();
         for (auto i = 0; i < 32; i++) {
-            if (l.hash[i] != r.hash[i]) {
+            if (lhash[i] != rhash[i]) {
                 return false;
             }
         }
         return true;
     }
-
     void create_tran(const ds_symbol &symbol, const bool is_eos_for_symbol, const ds_account &action, const ds_int &interval) {
         eosio::transaction t;
         t.delay_sec = interval - now() % interval;
@@ -118,19 +99,16 @@ protected:
                 EOSDTORCLIZE,
                 action,
                 std::make_tuple(symbol, is_eos_for_symbol));
-
         auto id = (((uint128_t) symbol.raw()) << 64) | (((uint128_t) action.value));
         auto deleted = cancel_deferred(id);
         ds_print("\r\ncancel: %, create: %, action: %, interval: %", deleted, id, action, interval);
         t.send(id, _self);
     }
-
     void cancel_tran(const ds_symbol &symbol, const ds_account &action) {
         auto id = (((uint128_t) symbol.raw()) << 64) | (((uint128_t) action.value));
         auto deleted = cancel_deferred(id);
         ds_print("\r\ncancel: %, create: %, action: %, symbol: %", deleted, id, action, symbol);
     }
-
     void comonrefresh(const ds_symbol &symbol, const bool is_eos_for_symbol, const ds_account &action) {
         PRINT_STARTED("comonrefresh"_n)
         oracle_rates_type oracle_rates(_self, _self.value);
@@ -151,7 +129,6 @@ protected:
         {
             create_tran(symbol, is_eos_for_symbol, "slaverefresh"_n, settings.slave_interval);
         }
-
         oracle_rates.modify(itr, ds_account(0), [&](auto &o) {
             if (action == "masterefresh"_n && o.master_update != STOP_REFRESH) {
                 o.master_update = time;
@@ -162,22 +139,18 @@ protected:
                 o.onerror_update = time;
             }
         });
-
         PRINT_FINISHED("comonrefresh"_n)
     }
-
 public:
-
     eosdtorclize(ds_account receiver, ds_account code, datastream<const char *> ds) : settings(receiver, code, ds) {
     }
-
     ACTION refreshutil(const ds_account &payer, const ds_symbol &symbol, const bool is_eos_for_symbol) {
         PRINT_STARTED("refreshutil"_n)
         require_auth(payer);
         ds_string query;
-        if (symbol == USD_SYMBOL) {
+        if (symbol == USD_SYMBOL && is_eos_for_symbol == 1) {
             query = "json(https://min-api.cryptocompare.com/data/price?fsym=EOS&tsyms=USD).USD";
-        } else if (symbol == UTILITY_SYMBOL) {
+        } else if (symbol == UTILITY_SYMBOL && is_eos_for_symbol == 0) {
             query = "json(https://api.hitbtc.com/api/2/public/ticker/NUTEOS).last";
         } else {
             return;
@@ -197,29 +170,33 @@ public:
         } else {
             ds_print("please retry later");
         }
-        PRINT_FINISHED("refreshutil finished")
+        PRINT_FINISHED("refreshutil"_n)
     }
-
     ACTION
-    callback(const capi_checksum256 &query_checksumm, const std::vector<unsigned char> &result,
+    callback(const std::string &queryId, const std::vector<unsigned char> &result,
              const std::vector<unsigned char> &proof) {
         PRINT_STARTED("callback"_n)
-
-
-
         {
-            require_auth(oraclize_cbAddress());
+            if (!has_auth(provable_cbAddress())) {
+                ds_print("nosuitable auth is found");
+                PRINT_FINISHED("callback"_n);
+                return;
+            }
         }
         oracle_queries_type oraclqueries(_self, _self.value);
-        ds_print("callback: %", query_checksumm);
+        const eosio::checksum256 query_id = hexstring_to_checksum256(queryId);
+        ds_print("queryId: %, query_id: %", queryId, query_id);
         auto itr = oraclqueries.begin();
-        for (; itr != oraclqueries.end() && !equal(itr->checksumm, query_checksumm); itr++) {
+        for (; itr != oraclqueries.end() && !equal(itr->checksumm, query_id); itr++) {
             ds_print("\r\noraclqueries: {checksum: %,asset_symbol: %,payer: %,moment: %}.",
                      itr->checksumm, itr->asset_symbol, itr->payer, itr->moment);
         }
-        ds_assert(itr != oraclqueries.end(), "checksumm % is not found", query_checksumm);
+        if (itr == oraclqueries.end()) {
+            ds_print("query_id % is not found", query_id);
+            PRINT_FINISHED("callback"_n);
+            return;
+        }
         oraclqueries.erase(itr);
-
         auto result_str = vector_to_string(result);
         if (itr->asset_symbol == EMPTY_SYMBOL) {
             rates_set(result_str);
@@ -228,7 +205,6 @@ public:
         }
         PRINT_FINISHED("callback"_n)
     }
-
     ACTION queriesdel(const ds_symbol &token_symbol) {
         has_recent_delete_old(token_symbol);
     }
@@ -237,13 +213,11 @@ public:
         comonrefresh(symbol, is_eos_for_symbol, "masterefresh"_n);
         PRINT_FINISHED("masterefresh"_n)
     }
-
     ACTION slaverefresh(const ds_symbol &symbol, const bool is_eos_for_symbol) {
         PRINT_STARTED("slaverefresh"_n)
         comonrefresh(symbol, is_eos_for_symbol, "slaverefresh"_n);
         PRINT_FINISHED("slaverefresh"_n)
     }
-
     ACTION onerror(const uint128_t &sender_id, const std::vector<char> &sent_trx) {
         PRINT_STARTED("onerror"_n)
         ds_print("\r\n sender_id:%", sender_id);
@@ -265,7 +239,6 @@ public:
         }
         PRINT_FINISHED("onerror"_n)
     }
-
     ACTION stoprefresh(const ds_symbol &symbol) {
         PRINT_STARTED("stoprefresh"_n)
         require_auth(_self);
@@ -279,7 +252,6 @@ public:
         cancel_tran(symbol, "slaverefresh"_n);
         PRINT_FINISHED("stoprefresh"_n)
     }
-
     ACTION startrefresh(const ds_symbol &symbol, const bool is_eos_for_symbol) {
         PRINT_STARTED("startrefresh")
         require_auth(_self);
@@ -292,6 +264,5 @@ public:
         comonrefresh(symbol, is_eos_for_symbol, "startrefresh"_n);
         PRINT_FINISHED("startrefresh")
     }
-
 };
 extern "C" { void apply( ds_ulong receiver, ds_ulong code, ds_ulong action ) { if( code != receiver && action != "onerror"_n.value) return; switch( action ) {EOSIO_DISPATCH_HELPER( eosdtorclize, (onerror)(settingset)(setlistdate) (refreshutil) (callback)(queriesdel) (masterefresh)(slaverefresh) (startrefresh)(stoprefresh) )} } }

@@ -234,11 +234,9 @@ static char *write_value(char *r, const char *l, const ds_account &a) {
     if (r + 13 > l) return r;
     for (ds_uint i = 0; i < 60; i += 5) {
         auto c = v >> (59 - i) & 31;
-        if (c == 0) {
-            break;
-        }
         *(r++) = char_map[c];
     }
+    while(*(r-1)=='.')r--;
     return r;
 }
 
