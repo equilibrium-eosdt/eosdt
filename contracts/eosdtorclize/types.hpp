@@ -33,10 +33,10 @@
 #define N(X) name{#X}
 #endif
 
-#define DELETEDATA
-#define TESTNET
-#define CALLBACKRIGHTS
-#define DEBUG
+//#define DELETEDATA
+//#define TESTNET
+//#define CALLBACKRIGHTS
+//#define DEBUG
 
 #ifdef DEBUG
 #define PRINT_STARTED(ACTION) ds_print("\r\n[%] % started.", __LINE__,ACTION);
@@ -134,7 +134,7 @@ struct oracle_query
 };
 
 #ifdef COMMON
-FC_REFLECT(oracle_query, (checksumm)(asset_symbol)(payer)(moment)(is_eos_for_symbol));
+FC_REFLECT(oracle_query, (asset_symbol)(checksumm)(payer)(moment)(is_eos_for_symbol));
 #endif
 
 struct oracle_rate

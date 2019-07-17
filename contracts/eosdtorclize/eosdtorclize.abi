@@ -51,7 +51,7 @@
     {
       "name": "callback",
       "fields": [
-{"name":"queryId","type":"s"},
+{"name":"queryId","type":"checksum256"},
 {"name":"result","type":"uint8[]"},
 {"name":"proof","type":"uint8[]"}
       ]
@@ -110,7 +110,8 @@
 {"name":"stoprefresh","type":"coin"},
 {"name":"startrefresh","type":"symbforsymb"},
 {"name":"onerror","type":"onerror"},
-{"name":"queriesdel","type":"coin"}
+{"name":"queriesdel","type":"coin"},
+{"name":"currentver","type":"empty"}
   ],
   "tables": [
 {"name":"orasettings","type":"orasettings","index_type":"i64","key_names":["id"],"key_types":["uint64"]},
