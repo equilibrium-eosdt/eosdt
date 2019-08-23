@@ -2,35 +2,10 @@
 
 
 
-class appliator : public votes {
+class applicator : public votes {
 
 protected:
     void apply_ctract_setting(const ds_string &json) {
-        struct ctrsetting {
-            ds_ulong setting_id;
-            uint8_t global_lock;
-            ds_long time_shift;
-
-            ds_account liquidator_account;
-            ds_account oraclize_account;
-            ds_account sttoken_account;
-            ds_account nutoken_account;
-
-            double governance_fee;
-            double stability_fee;
-            double critical_ltv;
-            double liquidation_penalty;
-            double liquidator_discount;
-            ds_asset liquidation_price;
-            double nut_auct_ratio;
-            double nut_discount;
-            double profit_factor;
-            ds_uint vote_period;
-            ds_uint stake_period;
-            double reserve_ratio;
-
-            ds_ulong primary_key() const { return setting_id; }
-        };
         auto eosdtcntract_account = settings_get().eosdtcntract_account;
         eosio::multi_index<"ctrsettings"_n, ctrsetting> ctrsettings(eosdtcntract_account, eosdtcntract_account.value);
         auto itr = ctrsettings.find(0);
@@ -86,6 +61,10 @@ protected:
                 apply_settings.reserve_ratio = parser.get_out_double();
                 settings_changed = true;
             }
+            else if (parser.is_key_equals("eosdtcntract.staking_weight")) {
+                apply_settings.staking_weight = parser.get_out_double();
+                settings_changed = true;
+            }
         }
         ds_assert(parse_status == json_parser::STATUS_END,"\r\nproposal_json is invalid, code %", parse_status);
         if(settings_changed) {
@@ -107,23 +86,12 @@ protected:
                                     std::optional<double>(apply_settings.profit_factor),
                                     std::optional<ds_uint>(apply_settings.vote_period),
                                     std::optional<ds_uint>(apply_settings.stake_period),
-                                    std::optional<double>(apply_settings.reserve_ratio))
+                                    std::optional<double>(apply_settings.reserve_ratio),
+                                    std::optional<double>(apply_settings.staking_weight),
+                                    std::optional<ds_account>(apply_settings.bpproxy_account),
+                                    std::optional<ds_account>(apply_settings.governc_account))
             ).send();
         }
-    }
-
-    void apply_ctract_producers(const std::map<std::string,ds_asset>& vote_producers) {
-        ds_assert(vote_producers.size() > 0,"\r\nproposal wasn't accepted");
-        std::vector<ds_account> apply_producers;
-        for (auto prod = vote_producers.begin(); prod != vote_producers.end(); prod++) {
-            apply_producers.push_back(ds_account{prod->first});
-        }
-        auto eosdtcntract_account = settings_get().eosdtcntract_account;
-        eosio::action(
-                eosio::permission_level{eosdtcntract_account, "active"_n},
-                "eosdtcntract"_n,
-                "setproducers"_n,
-                std::make_tuple(apply_producers)).send();
     }
 
     void apply_liqdatr_setting(const ds_string &json) {
@@ -139,7 +107,7 @@ protected:
 
             ds_ulong primary_key() const { return setting_id; }
         };
-        auto liquidator_account = settings_get().liquidator_account;
+        auto liquidator_account = eosdt_ctract_setting_get().liquidator_account;
         eosio::multi_index<"liqsettings"_n, liqdatr_settings> settings(liquidator_account, liquidator_account.value);
         auto itr = settings.find(0);
         ds_assert(itr != settings.end(), "Need to set up % on liqdatr by forum.", SETTINGS);
@@ -176,12 +144,13 @@ protected:
             ds_time utility_listing_date;
             ds_int rate_timeout;
             ds_int query_timeout;
-            ds_int master_interval;
-            ds_int slave_interval;
+            ds_int provablecb1a_interval;
+            ds_int eosnationdsp_interval;
+            ds_int equilibriumdsp_interval;
 
             ds_ulong primary_key() const { return id; }
         };
-        auto oraclize_account = settings_get().oraclize_account;
+        auto oraclize_account = eosdt_ctract_setting_get().oraclize_account;
         eosio::multi_index<"orasettings"_n, oracle_settings> settings(oraclize_account, oraclize_account.value);
         auto itr = settings.find(0);
         ds_assert(itr != settings.end(), "Need to set up % on oracle by forum.", SETTINGS);
@@ -199,15 +168,18 @@ protected:
                 apply_struct.query_timeout = parser.get_out_int();
                 change_exists = true;
             }
-            else if (parser.is_key_equals("eosdtorclize.master_interval")) {
-                apply_struct.master_interval = parser.get_out_int();
+            else if (parser.is_key_equals("eosdtorclize.provablecb1a_interval")) {
+                apply_struct.provablecb1a_interval = parser.get_out_int();
                 change_exists = true;
             }
-            else if (parser.is_key_equals("eosdtorclize.slave_interval")) {
-                apply_struct.slave_interval = parser.get_out_int();
+            else if (parser.is_key_equals("eosdtorclize.eosnationdsp_interval")) {
+                apply_struct.eosnationdsp_interval = parser.get_out_int();
                 change_exists = true;
             }
-
+            else if (parser.is_key_equals("eosdtorclize.equilibriumdsp_interval")) {
+                apply_struct.equilibriumdsp_interval = parser.get_out_int();
+                change_exists = true;
+            }
         }
         ds_assert(parse_status == json_parser::STATUS_END,"\r\nproposal_json is invalid, code %", parse_status);
         if(change_exists) {
@@ -218,9 +190,9 @@ protected:
                     std::make_tuple(
                             apply_struct.rate_timeout,
                             apply_struct.query_timeout,
-                            apply_struct.master_interval,
-                            apply_struct.slave_interval
-                                    )
+                            apply_struct.provablecb1a_interval,
+                            apply_struct.eosnationdsp_interval,
+                            apply_struct.equilibriumdsp_interval)
             ).send();
         }
 
@@ -238,18 +210,6 @@ protected:
         for ( ; parse_status == json_parser::STATUS_OK; parse_status = parser.parse()) {
             if (parser.is_key_equals("eosdtgovernc.eosdtcntract_account")) {
                 apply_struct.eosdtcntract_account = parser.get_out_name();
-                change_exists = true;
-            }
-            else if (parser.is_key_equals("eosdtgovernc.liquidator_account")) {
-                apply_struct.liquidator_account = parser.get_out_name();
-                change_exists = true;
-            }
-            else if (parser.is_key_equals("eosdtgovernc.oraclize_account")) {
-                apply_struct.oraclize_account = parser.get_out_name();
-                change_exists = true;
-            }
-            else if (parser.is_key_equals("eosdtgovernc.nutoken_account")) {
-                apply_struct.nutoken_account = parser.get_out_name();
                 change_exists = true;
             }
             else if (parser.is_key_equals("eosdtgovernc.min_proposal_weight")) {
@@ -272,8 +232,20 @@ protected:
                 apply_struct.top_holders_amount = parser.get_out_int();
                 change_exists = true;
             }
-            else if (parser.is_key_equals("eosdtgovernc.min_threshold")) {
-                apply_struct.min_threshold = parser.get_out_int();
+            else if (parser.is_key_equals("eosdtgovernc.max_bp_count")) {
+                apply_struct.max_bp_count = parser.get_out_int();
+                change_exists = true;
+            }
+            else if (parser.is_key_equals("eosdtgovernc.max_bp_votes")) {
+                apply_struct.max_bp_votes = parser.get_out_int();
+                change_exists = true;
+            }
+            else if (parser.is_key_equals("eosdtgovernc.min_vote_stake")) {
+                apply_struct.min_vote_stake = parser.get_out_asset();
+                change_exists = true;
+            }
+            else if (parser.is_key_equals("eosdtgovernc.unstake_period")) {
+                apply_struct.unstake_period = parser.get_out_int();
                 change_exists = true;
             }
         }
@@ -284,22 +256,23 @@ protected:
                     _self,
                     "settingset"_n,
                     std::make_tuple(apply_struct.eosdtcntract_account,
-                                    apply_struct.liquidator_account,
-                                    apply_struct.oraclize_account,
-                                    apply_struct.nutoken_account,
                                     apply_struct.min_proposal_weight,
                                     apply_struct.freeze_period,
                                     apply_struct.min_participation,
                                     apply_struct.success_margin,
                                     apply_struct.top_holders_amount,
-                                    std::optional<double>(apply_struct.min_threshold)
+                                    apply_struct.max_bp_count,
+                                    apply_struct.max_bp_votes,
+                                    apply_struct.min_vote_stake,
+                                    apply_struct.unstake_period
                     )
             ).send();
+
         }
     }
 
 public:
-    appliator(ds_account receiver, ds_account code, eosio::datastream<const char *> ds) :
+    applicator(ds_account receiver, ds_account code, eosio::datastream<const char *> ds) :
             votes(receiver, code, ds) {
     }
 
@@ -341,9 +314,6 @@ public:
             if (proposal.proposal_type == 1) {
                 apply_ctract_setting(proposal.proposal_json);
             }
-            else if (proposal.proposal_type == 2) {
-                apply_ctract_producers(vote_producers);
-            }
         }
 
         apply_liqdatr_setting(proposal.proposal_json);
@@ -353,6 +323,33 @@ public:
         apply_governc_setting(proposal.proposal_json);
 
         PRINT_FINISHED("apply"_n)
+    }
+
+    void applybpproxy() {
+        PRINT_STARTED("applybpproxy"_n)
+        bpvotes_table bpvote_tbl(_self, _self.value);
+        auto index = bpvote_tbl.get_index<"byvotes"_n>();
+        auto itr = index.rbegin();
+
+        std::vector<ds_account> top_producers;
+        auto cnt = 0;
+        auto max_bp_count = settings_get().max_bp_count;
+        for (auto itr = index.rbegin(); itr != index.rend() && cnt < max_bp_count; itr++, cnt++) {
+            top_producers.push_back(ds_account{itr->producer});
+        }
+        if (top_producers.size() == 0) {
+            return;
+        }
+
+        std::sort( top_producers.begin(), top_producers.end() );
+        auto eosdtbpproxy_account = eosdt_ctract_setting_get().bpproxy_account;
+        auto proxy = ds_account(0);
+        eosio::action(
+                eosio::permission_level{eosdtbpproxy_account, "active"_n},
+                "eosio"_n,
+                "voteproducer"_n,
+                std::make_tuple(eosdtbpproxy_account,proxy,top_producers)).send();
+        PRINT_FINISHED("applybpproxy"_n)
     }
 
 };

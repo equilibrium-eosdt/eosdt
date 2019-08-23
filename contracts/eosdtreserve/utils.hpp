@@ -1,48 +1,127 @@
 #include "types.hpp"
-#include "info.hpp"
+#include <cmath>
+
+using eosio::check;
+using eosio::print_f;
 
 static bool ne(double l, double r) {
     return l < r || r < l;
 }
 
-static double to_double(const ds_asset &asset) {
+uint64_t to_uint64(char const *s)
+{
+    uint64_t result = 0;
+    while(*s >= '0' && *s <= '9' ) {
+        result = result * 10 + (uint64_t)(*s - '0');
+        ++s;
+    }
+    return result;
+}
+
+constexpr double to_double(const ds_asset &asset) {
     auto result = 1;
     for (ds_ulong i = 0; i < asset.symbol.precision(); i++)result *= 10;
     return (double) asset.amount / result;
 }
 
-static long double to_ldouble(const ds_asset &asset) {
+constexpr long double to_ldouble(const ds_asset &asset) {
     auto result = 1;
     for (ds_ulong i = 0; i < asset.symbol.precision(); i++)result *= 10;
     return (long double) asset.amount / result;
 }
 
-ds_asset operator*( const ds_asset& quantity,const double value ) {
-    return ds_asset(int64_t(((double)quantity.amount)*value), quantity.symbol);
-}
-
-ds_asset operator/( const ds_asset& quantity,const double value ) {
-    return ds_asset(int64_t(((double)quantity.amount)/value), quantity.symbol);
-}
-
-ds_asset operator*( const ds_asset& quantity,const long double value ) {
-    return ds_asset(int64_t(((long double)quantity.amount)*value), quantity.symbol);
-}
-
-ds_asset operator/( const ds_asset& quantity,const long double value ) {
-    return ds_asset(int64_t(((long double)quantity.amount)/value), quantity.symbol);
-}
-
-static auto equal(ds_checksum l, ds_checksum r) {
-    auto lhash = l.extract_as_byte_array();
-    auto rhash = r.extract_as_byte_array();
-    for (auto i = 0; i < 32; i++) {
-        if (lhash[i] != rhash[i]) {
-            return false;
+constexpr static __int128_t pow(__int128_t x, ds_uint n)
+{
+    if(n == 0)
+        return 1;
+    __int128_t y = 1;
+    while(n > 1){
+        if(n%2==0){
+            x*=x;
+            n/=2;
+        }
+        else{
+            y=x*y;
+            x*=x;
+            n=(n-1)/2;
         }
     }
-    return true;
+    return x * y;
 }
+
+constexpr double pow(double x, ds_long n)
+{
+    if(n == 0)
+        return 1;
+    double y = 1;
+    while(n > 1){
+        if(n%2==0){
+            x*=x;
+            n/=2;
+        }
+        else{
+            y=x*y;
+            x*=x;
+            n=(n-1)/2;
+        }
+    }
+    return x * y;
+}
+
+constexpr long double pow(long double x, ds_long n)
+{
+    if(n == 0)
+        return 1;
+    long double y = 1.0L;
+    while(n > 1){
+        if(n%2==0){
+            x*=x;
+            n/=2;
+        }
+        else{
+            y=x*y;
+            x*=x;
+            n=(n-1)/2;
+        }
+    }
+    return x * y;
+}
+
+ds_asset op_mul_ceil( const ds_asset& quantity,const double value, ds_uint decimals = 1 ) {
+    return ds_asset(std::ceil((double)quantity.amount*value/(double)decimals)*decimals, quantity.symbol);
+}
+
+ds_asset op_mul_floor( const ds_asset& quantity,const double value, ds_uint decimals = 1 ) {
+    return ds_asset(std::floor((double)quantity.amount*value/(double)decimals)*decimals, quantity.symbol);
+}
+
+ds_asset op_div_ceil( const ds_asset& quantity,const double value, ds_uint decimals = 1 ) {
+    return ds_asset(std::ceil((double)quantity.amount/(value*(double)decimals))*decimals, quantity.symbol);
+}
+
+ds_asset op_div_floor( const ds_asset& quantity,const double value, ds_uint decimals = 1 ) {
+    return ds_asset(std::floor((double)quantity.amount/(value*(double)decimals))*decimals, quantity.symbol);
+}
+
+ds_asset op_mul_round( const ds_asset& quantity,const double value, ds_uint decimals = 1 ) {
+    return ds_asset(std::llround((double)quantity.amount*value/(double)decimals)*decimals, quantity.symbol);
+}
+
+//ds_asset operator*( const ds_asset& quantity,const double value ) {
+//    return ds_asset(std::llround((double)quantity.amount*value), quantity.symbol);
+//}
+//
+//ds_asset operator/( const ds_asset& quantity,const double value ) {
+//    return ds_asset(std::llround((double)quantity.amount/value), quantity.symbol);
+//}
+//
+//ds_asset operator*( const ds_asset& quantity,const long double value ) {
+//    return ds_asset(std::llroundl((long double)quantity.amount*value), quantity.symbol);
+//}
+//
+//ds_asset operator/( const ds_asset& quantity,const long double value ) {
+//    return ds_asset(std::llroundl((long double)quantity.amount/value), quantity.symbol);
+//}
 
 static char *write_value(char *r, const char *l, ds_ulong v) {
     r++;
@@ -74,34 +153,6 @@ static char *write_value(char *r, const char *l, ds_int v) {
     return write_value(r, l, (ds_long) v);
 }
 
-static char* write_value(char *r, const char *l, const uint128_t &v) {
-    if (r+32>l) {
-        return r;
-    }
-    for (auto i = 0; i < 16; i++) {
-        auto b = (v>>(120-(i*8)))&255;
-        auto f = b >> 4;
-        *(r++) = char(f + (f < 10 ? 48 : 55));
-        auto s = b % 16;
-        *(r++) = char(s + (s < 10 ? 48 : 55));
-    }
-    return r;
-}
-
-static char* write_value(char *r, const char *l, const eosio::checksum256 &v) {
-    if (r+64>l) {
-        return r;
-    }
-    auto vhash = v.extract_as_byte_array();
-    for (auto i = 0; i < 32; i++) {
-        auto b = vhash[i];
-        auto f = b >> 4;
-        *(r++) = char(f + (f < 10 ? 48 : 55));
-        auto s = b % 16;
-        *(r++) = char(s + (s < 10 ? 48 : 55));
-    }
-    return r;
-}
 
 static char *write_ulong(char *r, const char *l, ds_ulong v, ds_ulong fix_len) {
     auto s = r;
@@ -117,14 +168,11 @@ static char *write_value(char *r, const char *l, const double v) {
     r = write_value(r, l, (ds_long) v);
     auto m = v > 0 ? v : -v;
     m -= (ds_ulong) m;
-    if (r + 1 > l || m < 0.00000001) {
+    if (r + 1 > l || m < 0.0000000000000001) {
         return r;
     }
     *(r++) = '.';
-    if (m >= 0.0001) {
-        return write_ulong(r, l, (ds_ulong) (m * 10000 + 0.9999), 4ULL);
-    }
-    return write_ulong(r, l, (ds_ulong) (m * 100000000 + 0.99999999), 8ULL);
+    return write_ulong(r, l, (ds_ulong) (m * 10000000000000000 + 0.9999999999999999), 16ULL);
 }
 
 static char *write_value(char *r, const char *l, const long double v) {
@@ -151,6 +199,10 @@ static char *write_value(char *r, const char *l,const ds_symbol &v) {
 static char *write_value(char *r, const char *l, ds_asset v) {
     auto digits = 1;
     for (ds_ulong i = 0; i < v.symbol.precision(); i++) digits *= 10;
+    if(v.amount / digits == 0 && v.amount < 0 )
+    {
+        *(r++) = '-';
+    }
     r = write_value(r, l, (ds_long) v.amount / digits);
     if (r + 1 > l) {
         return r;
@@ -206,13 +258,8 @@ static char *write_value(char *r, const char *l, const char *v) {
     return r;
 }
 
-static char *write_value(char *r, const char *l, const std::vector<char>  &v) {
-    for (auto it = v.begin() ; it != v.end() && r < l; it++) *(r++) = *it;
-    return r;
-}
-
 static char *write_value(char *r, const char *l, const ds_string &v) {
-    return write_value(r, l, v.c_str());
+    return write_value(r,l,v.c_str());
 }
 
 static char *write_value(char *r, const char *l, const ds_account &a) {
@@ -226,18 +273,10 @@ static char *write_value(char *r, const char *l, const ds_account &a) {
     while(*(r-1)=='.')r--;
     return r;
 }
-
 template<typename t>
-static char *write_value(char *r, const char *l, const std::vector<t>  &v) {
-    *(r++) = '[';
-    for (auto item: v) {
-        r = write_value(r, l, item);
-        *(r++) = ',';
-    }
-    *(r++) = ']';
-    return r;
+static char *write_value(char *r, const char *l, const std::optional<t> &v) {
+    return write_value(r,l,*v);
 }
-
 
 template<typename t0 = ds_nullptr, typename t1 = ds_nullptr, typename t2 = ds_nullptr,
         typename t3 = ds_nullptr, typename t4 = ds_nullptr, typename t5 = ds_nullptr,
@@ -301,7 +340,7 @@ static void ds_print(const char *f, t0 v0 = nullptr, t1 v1 = nullptr, t2 v2 = nu
                      t3 v3 = nullptr, t4 v4 = nullptr, t5 v5 = nullptr,
                      t6 v6 = nullptr, t7 v7 = nullptr, t8 v8 = nullptr, t9 v9 = nullptr) {
 
-    eosio::print(write_format_string(f, v0, v1, v2, v3, v4, v5, v6, v7, v8, v9));
+    print_f(write_format_string(f, v0, v1, v2, v3, v4, v5, v6, v7, v8, v9));
 }
 
 
@@ -314,8 +353,16 @@ static void ds_assert(bool test, const char *f, t0 v0 = nullptr, t1 v1 = nullptr
     if (test) {
         return;
     }
-    eosio::check(false, write_format_string(f, v0, v1, v2, v3, v4, v5, v6, v7, v8, v9));
+    check(false, write_format_string(f, v0, v1, v2, v3, v4, v5, v6, v7, v8, v9));
 }
+
+ds_asset op_mul_div( const ds_asset& quantity, const long double mul, const long double div ) {
+    auto value = int64_t(((long double)quantity.amount)*mul/div);
+    ds_assert(value <= 4611686018427387904L, "magnitude of asset amount must be less than 2^62\r\namount(%)=quantity(%)*mul(%)/div(%)",
+              value, quantity, mul, div);
+    return ds_asset(int64_t(((long double)quantity.amount)*mul/div), quantity.symbol);
+}
+
 
 
 static ds_asset parse_price(const ds_symbol &symbol, const char *data) {
@@ -344,38 +391,4 @@ static ds_asset parse_price(const ds_symbol &symbol, const char *data) {
     return ds_asset(mint, symbol);
 }
 
-static ds_asset parse_rate(const ds_symbol &token_symbol, const ds_string &data) {
-    char buffer[8];
-    buffer[0] = '"';
-    auto b = write_symbol_name(buffer + 1, buffer+8U, token_symbol.code());
-    *(b++) = '"';
-    *(b++) = ':';
-    auto pos = data.find(buffer, 0, (uint32_t)(b - buffer));
-    if (pos == ds_string::npos) {
-        return ds_asset(0, token_symbol);
-    }
-    return parse_price(token_symbol, data.c_str() + pos + (b - buffer));
-}
 
-ds_asset op_mul_div( const ds_asset& quantity, const long double mul, const long double div ) {
-    auto value = int64_t(((long double)quantity.amount)*mul/div);
-    ds_assert(value <= 4611686018427387904L, "magnitude of asset amount must be less than 2^62\r\namount(%)=quantity(%)*mul(%)/div(%)",
-              value, quantity, mul, div);
-    return ds_asset(int64_t(((long double)quantity.amount)*mul/div), quantity.symbol);
-}
-
-ds_int price_type_to_i(const price_type price_type) {
-    return static_cast<ds_int>(price_type);
-}
-
-void assert_price_type(const ds_int num) {
-    ds_assert(num >= static_cast<ds_int>(
-                      price_type::SYMBOL_TO_EOS) && num <= static_cast<ds_int>(price_type::SYMBOL_TO_USD),
-              "price_type value out of range: %", num);
-}
-
-price_type i_to_price_type(const ds_int num) {
-    assert_price_type(num);
-
-    return static_cast<price_type>(num);
-}

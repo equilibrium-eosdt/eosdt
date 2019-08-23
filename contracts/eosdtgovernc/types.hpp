@@ -14,9 +14,12 @@
 
 #else
 
-#include <eosiolib/eosio.hpp>
-#include <eosiolib/asset.hpp>
-#include <eosiolib/transaction.hpp>
+#include <eosio/eosio.hpp>
+#include <eosio/asset.hpp>
+#include <eosio/transaction.hpp>
+#include <eosio/print.hpp>
+#include <eosio/system.hpp>
+#include <eosio/crypto.hpp>
 
 #define ds_time eosio::time_point_sec
 #define ds_account eosio::name
@@ -26,10 +29,6 @@
 #define ds_public_key eosio::public_key
 #define N(X) name{#X}
 #endif
-
-#define DELETEDATA
-#define TESTNET
-#define DEBUG
 
 #ifdef DEBUG
 #define PRINT_STARTED(ACTION) ds_print("\r\n[%] % started.", __LINE__,ACTION);
@@ -63,7 +62,7 @@
 #define EOSCTRACT_STR "eosio.token"
 #define EOSDTCNTRACT_STR "eosdtcntract"
 #define EOSDTORCLIZE_STR "eosdtorclize"
-#define ORACLERATES_STR "oracle.rates"
+#define ORACLERATES_STR "orarates"
 #define EOSDTLIQDATR_STR "eosdtliqdatr"
 #define EOSDTNUTOKEN_STR "eosdtnutoken"
 #define EOSDTSTTOKEN_STR "eosdtsttoken"
@@ -72,7 +71,7 @@
 #define EOSCTRACT N(eosio.token)
 #define EOSDTCNTRACT N(eosdtcntract)
 #define EOSDTORCLIZE N(eosdtorclize)
-#define ORACLERATES N(oracle.rates)
+#define ORACLERATES N(orarates)
 #define EOSDTLIQDATR N(eosdtliqdatr)
 #define EOSDTNUTOKEN N(eosdtnutoken)
 #define EOSDTSTTOKEN N(eosdtsttoken)
@@ -91,7 +90,7 @@
 #define EOSCTRACT "eosio.token"_n
 #define EOSDTCNTRACT "eosdtcntract"_n
 #define EOSDTORCLIZE "eosdtorclize"_n
-#define ORACLERATES "oracle.rates"_n
+#define ORACLERATES "orarates"_n
 #define ORACLEREFRESH "refreshutil"_n
 #define EOSDTLIQDATR "eosdtliqdatr"_n
 #define EOSDTNUTOKEN "eosdtnutoken"_n
@@ -124,6 +123,7 @@
 #define SETTLEMENT_TIMING "settlement timing"
 
 #define SETTINGS "govsettings"
+#define blockproduceproposal "blockproduce"_n
 
 struct account {
     ds_asset balance;
@@ -161,33 +161,36 @@ FC_REFLECT(currency_stats, (supply)(max_supply)(issuer));
 
 struct govsetting {
     ds_ulong setting_id;
-    ds_long time_shift;
     ds_account eosdtcntract_account;
-    ds_account liquidator_account;
-    ds_account oraclize_account;
-    ds_account nutoken_account;
     ds_asset min_proposal_weight;
     ds_uint freeze_period;
     double min_participation;
     double success_margin;
-    ds_ulong top_holders_amount;
-    double min_threshold;
+    ds_uint top_holders_amount;
+    ds_uint max_bp_count;
+    ds_uint max_bp_votes;
+    ds_asset min_vote_stake;
+    ds_uint unstake_period;
 
     ds_ulong primary_key() const { return setting_id; }
 };
 
 #ifdef COMMON
-FC_REFLECT(govsetting, (setting_id)(time_shift)(eosdtcntract_account)(liquidator_account)(oraclize_account)
-(nutoken_account)(min_proposal_weight)(freeze_period)(min_participation)(success_margin)(top_holders_amount)
-(min_threshold));
+FC_REFLECT(govsetting, (setting_id)(eosdtcntract_account)
+(min_proposal_weight)(freeze_period)(min_participation)(success_margin)(top_holders_amount)
+(max_bp_count)(max_bp_votes)(min_vote_stake)(unstake_period));
 #endif
 
-struct oracle_rate {
+struct oracle_rate
+{
     ds_asset rate;
-    ds_time last_update;
-    ds_time master_update;
-    ds_time slave_update;
-    ds_time onerror_update;
+    ds_time update;
+    ds_asset provablecb1a_price;
+    ds_time provablecb1a_update;
+    ds_asset eosnationdsp_price;
+    ds_time eosnationdsp_update;
+    ds_asset equilibriumdsp_price;
+    ds_time equilibriumdsp_update;
 
     uint64_t primary_key() const {
 
@@ -200,7 +203,7 @@ struct oracle_rate {
 };
 
 #ifdef COMMON
-FC_REFLECT(oracle_rate, (rate)(last_update)(master_update)(slave_update)(onerror_update));
+FC_REFLECT(oracle_rate, (rate)(update)(provablecb1a_price)(provablecb1a_update)(eosnationdsp_price)(eosnationdsp_update)(equilibriumdsp_price)(equilibriumdsp_update));
 #endif
 
 constexpr static ds_uint SIX_MONTHS_IN_SECONDS = (ds_uint) (6 * (365.25 / 12) * 24 * 60 * 60);
@@ -228,6 +231,7 @@ FC_REFLECT(proposal, (proposal_name)(proposer)(title)(proposal_json)(created_at)
 
 struct voter {
     ds_asset voting_amount;
+    ds_time withdrawal_date;
 
     ds_ulong primary_key() const {
 #ifdef COMMON
@@ -239,7 +243,7 @@ struct voter {
 };
 
 #ifdef COMMON
-FC_REFLECT(voter, (voting_amount));
+FC_REFLECT(voter, (voting_amount)(withdrawal_date));
 #endif
 
 static __uint128_t compress_key(const ds_ulong &left, const ds_ulong &right) {
@@ -252,7 +256,6 @@ struct vote {
     ds_account voter;
     uint8_t vote;
     ds_time updated_at;
-    ds_asset quantity;
     ds_string vote_json;
 
     auto primary_key() const { return id; }
@@ -263,7 +266,7 @@ struct vote {
 };
 
 #ifdef COMMON
-FC_REFLECT(vote, (id)(proposal_name)(voter)(vote)(updated_at)(quantity)(vote_json));
+FC_REFLECT(vote, (id)(proposal_name)(voter)(vote)(updated_at)(vote_json));
 #endif
 
 
@@ -283,4 +286,56 @@ FC_REFLECT( producer_info, (owner)(total_votes)(producer_key)(is_active)(url)
         (unpaid_blocks)(last_claim_time)(location))
 #endif
 
+struct bpvote
+{
+    ds_account producer;
+    ds_asset votes;
+
+    uint64_t primary_key() const { return producer.value; }
+
+#ifdef COMMON
+    uint64_t byvotes() const { return votes.get_amount(); }
+#else
+    uint64_t byvotes() const { return votes.amount; }
+#endif
+};
+
+#ifdef COMMON
+FC_REFLECT(bpvote, (producer)(votes));
+#endif
+
+struct ctrsetting {
+    ds_ulong setting_id;
+    uint8_t global_lock;
+    ds_long time_shift;
+    ds_account liquidator_account;
+    ds_account oraclize_account;
+    ds_account sttoken_account;
+    ds_account nutoken_account;
+    double governance_fee;
+    double stability_fee;
+    double critical_ltv;
+    double liquidation_penalty;
+    double liquidator_discount;
+    ds_asset liquidation_price;
+    double nut_auct_ratio;
+    double nut_discount;
+    double profit_factor;
+    ds_uint vote_period;
+    ds_uint stake_period;
+    double reserve_ratio;
+    double staking_weight;
+    ds_account bpproxy_account;
+    ds_account governc_account;
+
+    ds_ulong primary_key() const { return setting_id; }
+};
+#ifdef COMMON
+FC_REFLECT(ctrsetting, (setting_id)
+        (global_lock)(time_shift)
+        (liquidator_account)(oraclize_account)(sttoken_account)(nutoken_account)
+        (governance_fee)(stability_fee)(critical_ltv)
+        (liquidation_penalty)(liquidator_discount)(liquidation_price)(nut_auct_ratio)(nut_discount)(profit_factor)
+        (vote_period)(stake_period)(reserve_ratio)(staking_weight)(bpproxy_account))
+#endif
 #endif

@@ -1,5 +1,7 @@
 #include "types.hpp"
 
+using eosio::check;
+using eosio::print_f;
 
 static bool ne(double l, double r) {
     return l < r || r < l;
@@ -307,7 +309,7 @@ static void ds_print(const char *f, t0 v0 = nullptr, t1 v1 = nullptr, t2 v2 = nu
                      t3 v3 = nullptr, t4 v4 = nullptr, t5 v5 = nullptr,
                      t6 v6 = nullptr, t7 v7 = nullptr, t8 v8 = nullptr, t9 v9 = nullptr) {
 
-    prints(write_format_string(f, v0, v1, v2, v3, v4, v5, v6, v7, v8, v9));
+    print_f(write_format_string(f, v0, v1, v2, v3, v4, v5, v6, v7, v8, v9));
 }
 
 
@@ -320,7 +322,7 @@ static void ds_assert(bool test, const char *f, t0 v0 = nullptr, t1 v1 = nullptr
     if (test) {
         return;
     }
-    eosio_assert(false, write_format_string(f, v0, v1, v2, v3, v4, v5, v6, v7, v8, v9));
+    check(false, write_format_string(f, v0, v1, v2, v3, v4, v5, v6, v7, v8, v9));
 }
 
 static ds_asset parse_price(const ds_symbol &symbol, const char *data) {

@@ -33,11 +33,6 @@
 #define N(X) name{#X}
 #endif
 
-//#define DELETEDATA
-//#define TESTNET
-//#define CALLBACKRIGHTS
-//#define DEBUG
-
 #ifdef DEBUG
 #define PRINT_STARTED(ACTION) ds_print("\r\n[%] % started.", __LINE__,ACTION);
 #define PRINT_FINISHED(ACTION) ds_print("\r\n[%] % finished.", __LINE__,ACTION);
@@ -67,11 +62,14 @@
 #define UTILITY_SYMBOL_STR "NUT"
 #define UTILITY_SYMBOL_PAD_STR " " UTILITY_SYMBOL_STR
 #define UTILITY_SYMBOL_DECIMAL 9
+#define DAPP_SYMBOL_STR "DAPP"
+#define DAPP_SYMBOL_PAD_STR " " DAPP_SYMBOL_STR
+#define DAPP_SYMBOL_DECIMAL 4
 
 #ifdef COMMON
 #define EOSDTCNTRACT N(eosdtcntract)
 #define EOSDTORCLIZE N(eosdtorclize)
-#define ORACLERATES N(oracle.rates)
+#define ORACLERATES N(orarates)
 #define EOS_SYMBOL ds_symbol(EOS_SYMBOL_DECIMAL,EOS_SYMBOL_STR)
 #define EOS_SYMBOL_VALUE ::eosio::chain::string_to_symbol_c(EOS_SYMBOL_DECIMAL,EOS_SYMBOL_STR)
 #define USD_SYMBOL ds_symbol(USD_SYMBOL_DECIMAL,USD_SYMBOL_STR)
@@ -83,7 +81,7 @@
 #else
 #define EOSDTCNTRACT "eosdtcntract"_n
 #define EOSDTORCLIZE "eosdtorclize"_n
-#define ORACLERATES "oracle.rates"_n
+#define ORACLERATES "orarates"_n
 #define ORACLEREFRESH "refreshutil"_n
 #define EOSDTFORUM "eosdtgovernc"_n
 #define EOS_SYMBOL ds_symbol(EOS_SYMBOL_STR,EOS_SYMBOL_DECIMAL)
@@ -94,6 +92,8 @@
 #define STABLE_SYMBOL_VALUE STABLE_SYMBOL.value()
 #define UTILITY_SYMBOL ds_symbol(UTILITY_SYMBOL_STR,UTILITY_SYMBOL_DECIMAL)
 #define UTILITY_SYMBOL_VALUE UTILITY_SYMBOL.value()
+#define DAPP_SYMBOL ds_symbol(DAPP_SYMBOL_STR,DAPP_SYMBOL_DECIMAL)
+#define DAPP_SYMBOL_VALUE DAPP_SYMBOL.value()
 #endif
 #define EMPTY_SYMBOL (ds_symbol(0ull))
 
@@ -107,22 +107,25 @@ struct oracle_settings
     ds_time utility_listing_date;
     ds_int rate_timeout;
     ds_int query_timeout;
-    ds_int master_interval;
-    ds_int slave_interval;
+    ds_int provablecb1a_interval;
+    ds_int eosnationdsp_interval;
+    ds_int equilibriumdsp_interval;
+
     ds_ulong primary_key() const { return id; }
 };
 
 #ifdef COMMON
-FC_REFLECT(oracle_settings, (id)(utility_listing_date)(rate_timeout)(query_timeout)(master_interval)(slave_interval));
+FC_REFLECT(oracle_settings, (id)(utility_listing_date)(rate_timeout)(query_timeout)(provablecb1a_interval)(eosnationdsp_interval)(equilibriumdsp_interval));
 #endif
 
-struct oracle_query
+struct oraqueries
 {
     ds_symbol asset_symbol;
+    ds_string query;
+    ds_int price_type;
+    ds_time query_updated_at;
+    ds_time query_executed_at;
     ds_checksum checksumm;
-    ds_account payer;
-    ds_time moment;
-    uint8_t is_eos_for_symbol;
 
     uint64_t primary_key() const {
 #ifdef COMMON
@@ -134,16 +137,45 @@ struct oracle_query
 };
 
 #ifdef COMMON
-FC_REFLECT(oracle_query, (asset_symbol)(checksumm)(payer)(moment)(is_eos_for_symbol));
+FC_REFLECT(oraqueries, (asset_symbol)(query)(price_type)(query_updated_at)(query_executed_at)(checksumm));
 #endif
+
+enum class price_type : ds_int {
+    SYMBOL_TO_EOS,
+    EOS_TO_SYMBOL,
+    SYMBOL_TO_USD
+};
+
+enum class source_type : ds_int {
+    provablecb1a,
+    eosnationdsp,
+    equilibriumdsp
+};
+
+auto to_string(const source_type &source)
+{
+    switch (source) {
+        case source_type::provablecb1a:
+            return "provablecb1a";
+        case source_type::eosnationdsp:
+            return "eosnationdsp";
+        case source_type::equilibriumdsp:
+            return "equilibriumdsp";
+        default:
+            return std::to_string((ds_int)source).c_str();
+    }
+}
 
 struct oracle_rate
 {
     ds_asset rate;
-    ds_time last_update;
-    ds_time master_update;
-    ds_time slave_update;
-    ds_time onerror_update;
+    ds_time update;
+    ds_asset provablecb1a_price;
+    ds_time provablecb1a_update;
+    ds_asset eosnationdsp_price;
+    ds_time eosnationdsp_update;
+    ds_asset equilibriumdsp_price;
+    ds_time equilibriumdsp_update;
 
     uint64_t primary_key() const {
 
@@ -156,7 +188,7 @@ struct oracle_rate
 };
 
 #ifdef COMMON
-FC_REFLECT(oracle_rate, (rate)(last_update)(master_update)(slave_update)(onerror_update));
+FC_REFLECT(oracle_rate, (rate)(update)(provablecb1a_price)(provablecb1a_update)(eosnationdsp_price)(eosnationdsp_update)(equilibriumdsp_price)(equilibriumdsp_update));
 #endif
 
 #ifndef ORACLIZEAPI_H
@@ -171,6 +203,56 @@ struct cbaddr
 #ifdef COMMON
 FC_REFLECT(cbaddr, (sender) );
 #endif
+
+struct ctrsetting {
+    ds_ulong setting_id;
+    uint8_t global_lock;
+    ds_long time_shift;
+    ds_account liquidator_account;
+    ds_account oraclize_account;
+    ds_account sttoken_account;
+    ds_account nutoken_account;
+    double governance_fee;
+    double stability_fee;
+    double critical_ltv;
+    double liquidation_penalty;
+    double liquidator_discount;
+    ds_asset liquidation_price;
+    double nut_auct_ratio;
+    double nut_discount;
+    double profit_factor;
+    ds_uint vote_period;
+    ds_uint stake_period;
+    double reserve_ratio;
+    double staking_weight;
+    ds_account bpproxy_account;
+    ds_account governc_account;
+
+    ds_ulong primary_key() const { return setting_id; }
+};
+#ifdef COMMON
+FC_REFLECT(ctrsetting, (setting_id)
+        (global_lock)(time_shift)
+        (liquidator_account)(oraclize_account)(sttoken_account)(nutoken_account)
+        (governance_fee)(stability_fee)(critical_ltv)
+        (liquidation_penalty)(liquidator_discount)(liquidation_price)(nut_auct_ratio)(nut_discount)(profit_factor)
+        (vote_period)(stake_period)(reserve_ratio)(staking_weight)(bpproxy_account))
+#endif
+
+struct subscribe
+{
+    ds_account contract;
+    ds_asset quantity;
+    ds_uint callcount;
+    ds_time lastcall;
+    ds_time withdrawal_date;
+
+    ds_ulong primary_key() const { return contract.value; }
+};
+#ifdef COMMON
+FC_REFLECT(subscribe, (contract)(quantity)(callcount)(lastcall)(withdrawal_date))
+#endif
+
 
 
 struct record

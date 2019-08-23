@@ -1,6 +1,8 @@
 #include "eosio.token.cpp"
 
 
+using eosio::check;
+
 class eosdtsttoken :public eosio::token {
 
 public:
@@ -8,9 +10,17 @@ public:
             token(receiver, code, ds) {
     }
 
-    ACTION burn(ds_account from,
+    ACTION retire(ds_account from,
                 ds_asset quantity,
                 ds_string memo){
+        eosio::print("\r\nretire(EOSDT) { from: ");
+        eosio::print(from);
+        eosio::print(", quantity: ");
+        eosio::print(quantity);
+        eosio::print(", memo: ");
+        eosio::print(memo);
+        eosio::print(" }.");
+
         require_auth( from );
         auto sym = quantity.symbol.code().raw();
         stats statstable( _self, sym );
@@ -18,12 +28,12 @@ public:
 
         require_recipient( from );
 
-        eosio_assert( quantity.is_valid(), "invalid quantity" );
-        eosio_assert( quantity.amount > 0, "must transfer positive quantity" );
-        eosio_assert( quantity.symbol == st.supply.symbol, "symbol precision mismatch" );
-        eosio_assert( memo.size() <= 256, "memo has more than 256 bytes" );
+        check( quantity.is_valid(), "invalid quantity" );
+        check( quantity.amount > 0, "must transfer positive quantity" );
+        check( quantity.symbol == st.supply.symbol, "symbol precision mismatch" );
+        check( memo.size() <= 256, "memo has more than 256 bytes" );
 
-        eosio_assert( quantity.amount <= st.supply.amount, "quantity exceeds available supply");
+        check( quantity.amount <= st.supply.amount, "quantity exceeds available supply");
 
         sub_balance( from, quantity );
 
@@ -35,4 +45,4 @@ public:
 };
 
 EOSIO_DISPATCH(eosdtsttoken,
-(create)(issue)(transfer)(burn))
+(create)(issue)(transfer)(retire))

@@ -1,8 +1,6 @@
-#define CONTRACT_NAME "eosdtorclize"
-#define ORACLIZE_NETWORK_NAME "eosio_mainnet"
-//#define ORACLIZE_NETWORK_NAME "eosio_testnet_jungle"
-
-#include "eos_api.hpp"
+#include "dappservices/oracle.hpp"
+#include "dappservices/cron.hpp"
+#include "oraclize/eos_api.hpp"
 #include "utils.hpp"
 
 
@@ -11,7 +9,7 @@ class settings : public eosio::contract {
 
 private:
     typedef eosio::multi_index<"orasettings"_n, oracle_settings> oracle_settings_table;
-
+    typedef eosio::multi_index<"ctrsettings"_n, ctrsetting> ctrsettings_table;
 protected:
     auto setting_get() {
         oracle_settings_table settings(_self, _self.value);
@@ -20,24 +18,51 @@ protected:
         return *itr;
     }
 
+    auto eosdt_ctract_setting_get() {
+        auto eosd_ctract = "eosdtcntract"_n;
+        ctrsettings_table ctrsettings(eosd_ctract, eosd_ctract.value);
+        return *ctrsettings.find(0);
+    }
+
+    auto time_get() {
+        auto time = ds_time(current_time_point().sec_since_epoch());
+
+
+
+
+
+
+
+        return time;
+
+    }
 public:
 
     settings(ds_account receiver, ds_account code, eosio::datastream<const char *> ds) : contract(receiver, code, ds) {
     }
 
 
-    void settingset(const ds_int &rate_timeout, const ds_int &query_timeout,
-                    const ds_int &master_interval, const ds_int &slave_interval) {
+    void settingset(const ds_int &rate_timeout, const ds_int &query_timeout, const ds_int &provablecb1a_interval,
+                    const ds_int &eosnationdsp_interval,const ds_int &equilibriumdsp_interval) {
         PRINT_STARTED("settingset"_n)
         require_auth(_self);
+        struct setting_old {
+            ds_ulong id;
+            ds_ulong primary_key() const { return id; }
+        };
+        eosio::multi_index<"orasettings"_n, setting_old> settings_old(_self, _self.value);
+        for (auto itr = settings_old.begin(); itr != settings_old.end(); itr = settings_old.erase(itr));
+
+
         oracle_settings_table settings(_self, _self.value);
         auto itr = settings.find(0);
         const auto set = [&](auto &row) {
             row.id = 0;
             row.rate_timeout = rate_timeout;
             row.query_timeout = query_timeout;
-            row.master_interval = master_interval;
-            row.slave_interval = slave_interval;
+            row.provablecb1a_interval = provablecb1a_interval;
+            row.eosnationdsp_interval = eosnationdsp_interval;
+            row.equilibriumdsp_interval = equilibriumdsp_interval;
         };
         if (itr == settings.end()) {
             settings.emplace(_self, set);
@@ -61,22 +86,4 @@ public:
 
         PRINT_FINISHED("setlistdate"_n)
     }
-
-#ifdef DELETEDATA
-
-    void settingerase() {
-        PRINT_STARTED("settingerase"_n)
-        require_auth(_self);
-        struct setting_old {
-            ds_ulong id;
-
-            ds_ulong primary_key() const { return id; }
-        };
-        eosio::multi_index<"orasettings"_n, setting_old> settings(_self, _self.value);
-        for (auto itr = settings.begin(); itr != settings.end(); itr = settings.erase(itr));
-        PRINT_FINISHED("settingerase"_n)
-    }
-
-#endif
-
 };

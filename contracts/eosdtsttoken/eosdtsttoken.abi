@@ -90,7 +90,7 @@
          ]
       },
       {
-         "name":"burn",
+         "name":"retire",
          "base":"",
          "fields":[
             {
@@ -125,8 +125,8 @@
          "ricardian_contract":""
       },
       {
-         "name":"burn",
-         "type":"burn",
+         "name":"retire",
+         "type":"retire",
          "ricardian_contract":""
       }
    ],
