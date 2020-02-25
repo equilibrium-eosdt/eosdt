@@ -29,6 +29,20 @@
             }
          ]
       },
+     {
+         "name":"close",
+         "base":"",
+         "fields":[
+            {
+               "name":"owner",
+               "type":"account_name"
+            },
+            {
+               "name":"symbol",
+               "type":"symbol"
+            }
+         ]
+      },
       {
          "name":"create",
          "base":"",
@@ -58,6 +72,24 @@
             {
                "name":"memo",
                "type":"string"
+            }
+         ]
+      },
+      {
+         "name":"open",
+         "base":"",
+         "fields":[
+            {
+               "name":"owner",
+               "type":"account_name"
+            },
+            {
+               "name":"symbol",
+               "type":"symbol"
+            },
+            {
+               "name":"ram_payer",
+               "type":"name"
             }
          ]
       },
@@ -116,6 +148,10 @@
                "type":"account_name"
             },
             {
+               "name":"via",
+               "type":"account_name"
+            },
+            {
                "name":"to",
                "type":"account_name"
             },
@@ -128,8 +164,118 @@
                "type":"string"
             }
          ]
-      }
-   ],
+      },
+        {
+            "name":"nutlocks",
+            "base":"",
+            "fields":[
+               {
+                  "name":"account",
+                  "type":"account_name"
+               }
+            ]
+        },
+        {
+            "name":"nutparams",
+            "base":"",
+            "fields":[
+                {
+                   "name":"param_id",
+                   "type":"uint64"
+                },
+                {
+                   "name":"burnt_supply",
+                   "type":"asset"
+                },
+                {
+                    "name":"locked_supply",
+                    "type":"asset"
+                }
+            ]
+        },
+        {
+            "name":"lockacc",
+            "base":"",
+            "fields":[
+                 {
+                    "name":"lock_list",
+                    "type":"account_name[]"
+                 }
+            ]
+        },
+        {
+            "name":"unlockacc",
+            "base":"",
+            "fields":[
+                 {
+                    "name":"unlock_list",
+                    "type":"account_name[]"
+                 }
+            ]
+        },
+        {
+            "name":"paraminit",
+            "base":"",
+            "fields":[
+                 {
+                    "name":"checksumm",
+                    "type":"asset"
+                 }
+            ]
+        },
+        {
+            "name":"empty",
+            "base":"",
+            "fields":[
+                ]
+        },
+        {
+                 "name":"nutstables",
+                 "base":"",
+                 "fields":[
+                  {
+                     "name":"account",
+                     "type":"account_name"
+                  },
+                  {
+                     "name":"is_own",
+                     "type":"uint8"
+                  },
+                  {
+                      "name":"peg",
+                      "type":"string"
+                   }
+                 ]
+             },
+            {
+                "name":"stableadd",
+                "base":"",
+                "fields":[
+                 {
+                    "name":"account",
+                    "type":"account_name"
+                 },
+                 {
+                    "name":"is_own",
+                    "type":"uint8"
+                 },
+                 {
+                     "name":"peg",
+                     "type":"string"
+                  }
+                ]
+            },
+             {
+                 "name":"stablerem",
+                 "base":"",
+                 "fields":[
+                  {
+                     "name":"account",
+                     "type":"account_name"
+                  }
+                 ]
+             }
+     ],
    "actions":[
       {
          "name":"transfer",
@@ -139,6 +285,16 @@
       {
          "name":"issue",
          "type":"issue",
+         "ricardian_contract":""
+      },
+      {
+         "name":"open",
+         "type":"open",
+         "ricardian_contract":""
+      },
+      {
+         "name":"close",
+         "type":"close",
          "ricardian_contract":""
       },
       {
@@ -155,7 +311,32 @@
          "name":"receive",
          "type":"receive",
          "ricardian_contract":""
-      }
+      },
+        {
+           "name":"lockacc",
+           "type":"lockacc",
+           "ricardian_contract":""
+        },
+        {
+            "name":"unlockacc",
+            "type":"unlockacc",
+            "ricardian_contract":""
+        },
+        {
+            "name":"paraminit",
+            "type":"paraminit",
+            "ricardian_contract":""
+        },
+        {
+            "name":"stableadd",
+            "type":"stableadd",
+            "ricardian_contract":""
+        },
+         {
+             "name":"stablerem",
+             "type":"stablerem",
+             "ricardian_contract":""
+         }
    ],
    "tables":[
       {
@@ -179,7 +360,40 @@
          "key_types":[
             "uint64"
          ]
-      }
+      },
+      {
+           "name":"nutlocks",
+           "type":"nutlocks",
+           "index_type":"i64",
+           "key_names":[
+              "account"
+           ],
+           "key_types":[
+              "uint64"
+           ]
+      },
+      {
+            "name":"nutparams",
+            "type":"nutparams",
+            "index_type":"i64",
+            "key_names":[
+             "param_id"
+            ],
+            "key_types":[
+             "uint64"
+            ]
+      },
+        {
+           "name":"nutstables",
+           "type":"nutstables",
+           "index_type":"i64",
+           "key_names":[
+            "account"
+           ],
+           "key_types":[
+            "uint64"
+           ]
+        }
    ],
    "ricardian_clauses":[
 

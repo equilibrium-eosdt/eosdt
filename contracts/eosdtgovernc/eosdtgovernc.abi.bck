@@ -1,0 +1,241 @@
+{
+  "____comment": "",
+  "version": "eosio::abi/1.0",
+  "types": [
+{"new_type_name":"b","type":"bool"},
+{"new_type_name":"n","type":"name"},
+{"new_type_name":"a","type":"asset"},
+{"new_type_name":"u","type":"uint32"},
+{"new_type_name":"ou","type":"uint32?"},
+{"new_type_name":"l","type":"uint64"},
+{"new_type_name":"s","type":"string"},
+{"new_type_name":"t","type":"time_point_sec"},
+{"new_type_name":"f","type":"float64"},
+{"new_type_name":"of","type":"float64?"},
+{"new_type_name":"h","type":"checksum256"}
+  ],
+  "structs": [
+    {
+      "name": "empty",
+      "fields": [
+      ]
+    },
+    {
+      "name": "govsetting",
+      "fields": [
+{"name":"setting_id","type":"l"},
+{"name":"eosdtcntract_account","type":"n"},
+{"name":"min_proposal_weight","type":"a"},
+{"name":"freeze_period","type":"u"},
+{"name":"min_participation","type":"f"},
+{"name":"success_margin","type":"f"},
+{"name":"top_holders_amount","type":"u"},
+{"name":"max_bp_count","type":"u"},
+{"name":"max_bp_votes","type":"u"},
+{"name":"min_vote_stake","type":"a"},
+{"name":"unstake_period","type":"u"},
+{"name":"reward_weight","type":"f"},
+{"name":"min_reward","type":"a"}
+      ]
+    },
+    {
+      "name": "settingset",
+      "fields": [
+{"name":"eosdtcntract_account","type":"n"},
+{"name":"min_proposal_weight","type":"a"},
+{"name":"freeze_period","type":"u"},
+{"name":"min_participation","type":"f"},
+{"name":"success_margin","type":"f"},
+{"name":"top_holders_amount","type":"u"},
+{"name":"max_bp_count","type":"u"},
+{"name":"max_bp_votes","type":"u"},
+{"name":"min_vote_stake","type":"a"},
+{"name":"unstake_period","type":"u"},
+{"name":"reward_weight","type":"f"},
+{"name":"min_reward","type":"a"}
+       ]
+    },
+    {
+      "name": "proposals",
+      "fields": [
+{"name":"proposal_name","type":"n"},
+{"name":"proposer","type":"n"},
+{"name":"title","type": "s"},
+{"name":"proposal_json","type":"s"},
+{"name":"created_at","type": "t"},
+{"name":"expires_at","type": "t"},
+{"name":"proposal_type","type": "uint8"}
+       ]
+    },
+    {
+      "name": "propose",
+      "fields": [
+{"name":"proposer","type":"n"},
+{"name":"proposal_name","type":"n"},
+{"name":"title","type": "s"},
+{"name":"proposal_json","type":"s"},
+{"name":"expires_at","type": "t"},
+{"name":"proposal_type","type": "uint8"}
+       ]
+    },
+    {
+      "name": "voters",
+      "fields": [
+{"name":"voting_amount","type": "a"},
+{"name":"withdrawal_date","type": "t"}
+       ]
+    },
+    {
+       "name": "govvoters",
+       "fields": [
+{"name":"voter","type": "n"},
+{"name":"voting_amount","type": "a"},
+{"name":"withdrawal_date","type": "t"}
+       ]
+    },
+    {
+      "name": "votes",
+      "fields": [
+{"name":"id","type":"l"},
+{"name":"proposal_name","type":"n"},
+{"name":"voter","type":"n"},
+{"name":"vote","type": "uint8"},
+{"name":"updated_at","type": "t"},
+{"name":"vote_json","type": "s"}
+       ]
+    },
+    {
+      "name": "govparam",
+      "fields": [
+{"name":"param_id","type":"l"},
+{"name":"NUT_voting_balance","type": "a"}
+       ]
+    },
+    {
+      "name": "govbpparam",
+      "fields": [
+{"name":"bp_name","type":"n"},
+{"name":"reward_amount","type": "a"},
+{"name":"balance","type": "a"},
+{"name":"enabled","type": "b"},
+{"name":"is_active","type": "b"},
+{"name":"active_since","type": "t"}
+       ]
+    },
+    {
+      "name": "votingstatus",
+      "fields": [
+{"name": "id", "type": "l"},
+{"name": "voted_at", "type": "t"},
+{"name": "vote_hash", "type": "h"}
+      ]
+    },
+    {
+      "name": "vote",
+      "fields": [
+{"name":"voter","type":"n"},
+{"name":"proposal_name","type":"n"},
+{"name":"vote","type": "uint8"},
+{"name":"vote_json","type": "s"}
+         ]
+    },
+    {
+      "name": "unvote",
+      "fields": [
+{"name":"voter","type":"n"},
+{"name":"proposal_name","type":"n"}
+       ]
+    },
+    {
+      "name": "unstake",
+      "fields": [
+ {"name":"voter","type":"n"},
+ {"name":"quantity","type":"a"}
+        ]
+    },
+    {
+      "name": "expire",
+      "fields": [
+{"name":"proposal_name","type":"n"}
+       ]
+    },
+    {
+      "name": "apply",
+      "fields": [
+{"name":"proposal_name","type":"n"}
+       ]
+    },
+    {
+      "name": "clnproposal",
+      "fields": [
+{"name":"proposal_name","type":"n"},
+{"name":"max_count","type":"l"}
+       ]
+    },
+    {
+      "name": "bpvotes",
+      "fields": [
+{"name":"producer","type":"n"},
+{"name":"votes","type":"a"}
+       ]
+    },
+    {
+       "name": "voterreborn",
+       "fields": [
+{"name":"voter","type":"n"}
+       ]
+    },
+    {
+       "name":"bpregister",
+       "fields":[
+{"name":"bp_name","type":"n"},
+{"name":"reward_amount","type":"a"}
+       ]
+    },
+    {
+       "name": "bpsetparams",
+       "fields": [
+{"name":"bp_name","type":"n"},
+{"name":"reward_amount","type":"a"}
+       ]
+    },
+    {
+       "name": "bpunregister",
+       "fields": [
+{"name":"bp_name","type":"n"}
+       ]
+    }
+  ],
+  "actions": [
+{"name":"settingset","type":"settingset"},
+{"name":"currentver","type":"empty"},
+{"name":"propose","type":"propose"},
+{"name":"vote","type":"vote"},
+{"name":"unvote","type":"unvote"},
+{"name":"unstake","type":"unstake"},
+{"name":"expire","type":"expire"},
+{"name":"apply","type":"apply"},
+{"name":"clnproposal","type":"clnproposal"},
+{"name":"applybpproxy","type":"empty"},
+{"name":"bpvotescount","type":"empty"},
+{"name":"voterreborn","type":"voterreborn"},
+{"name":"bpregister","type":"bpregister"},
+{"name":"bpsetparams","type":"bpsetparams"},
+{"name":"bpunregister","type":"bpunregister"},
+{"name":"reinit","type":"empty"},
+{"name":"calcnutbal","type":"empty"}
+  ],
+  "tables": [
+{"name":"govsettings","type":"govsetting","index_type":"i64","key_names": ["setting_id"],"key_types": ["uint64"]},
+{"name":"proposals","type":"proposals","index_type":"i64","key_names": ["proposal_name"],"key_types": ["uint64"]},
+{"name":"voters","type":"voters","index_type":"i64","key_names": ["voting_amount"],"key_types": ["uint64"]},
+{"name":"govvoters","type":"govvoters","index_type":"i64","key_names": ["voter"],"key_types": ["uint64"]},
+{"name":"votes","type":"votes","index_type":"i64","key_names": ["id"],"key_types": ["uint64"]},
+{"name":"bpvotes","type":"bpvotes","index_type":"i64","key_names": ["producer"],"key_types": ["uint64"]},
+{"name":"govparams","type":"govparam","index_type":"i64","key_names": ["param_id"],"key_types": ["uint64"]},
+{"name":"govbpparams","type":"govbpparam","index_type":"i64","key_names": ["bp_name"],"key_types": ["uint64"]},
+{"name":"votingstatus","type":"votingstatus","index_type":"i64","key_names": ["id"],"key_types": ["uint64"]}
+ ],
+  "ricardian_clauses": [],
+  "abi_extensions": []
+}

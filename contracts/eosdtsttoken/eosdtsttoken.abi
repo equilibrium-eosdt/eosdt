@@ -29,6 +29,20 @@
             }
          ]
       },
+     {
+         "name":"close",
+         "base":"",
+         "fields":[
+            {
+               "name":"owner",
+               "type":"account_name"
+            },
+            {
+               "name":"symbol",
+               "type":"symbol"
+            }
+         ]
+      },
       {
          "name":"create",
          "base":"",
@@ -58,6 +72,46 @@
             {
                "name":"memo",
                "type":"string"
+            }
+         ]
+      },
+      {
+         "name":"issuefrom",
+         "base":"",
+         "fields":[
+            {
+               "name":"issuer",
+               "type":"account_name"
+            },
+            {
+               "name":"to",
+               "type":"account_name"
+            },
+            {
+               "name":"quantity",
+               "type":"asset"
+            },
+            {
+               "name":"memo",
+               "type":"string"
+            }
+         ]
+      },
+      {
+         "name":"open",
+         "base":"",
+         "fields":[
+            {
+               "name":"owner",
+               "type":"account_name"
+            },
+            {
+               "name":"symbol",
+               "type":"symbol"
+            },
+            {
+               "name":"ram_payer",
+               "type":"name"
             }
          ]
       },
@@ -106,6 +160,84 @@
                "type":"string"
             }
          ]
+      },
+      {
+         "name":"retirefrom",
+         "base":"",
+         "fields":[
+            {
+               "name":"issuer",
+               "type":"account_name"
+            },
+            {
+               "name":"from",
+               "type":"account_name"
+            },
+            {
+               "name":"quantity",
+               "type":"asset"
+            },
+            {
+               "name":"memo",
+               "type":"string"
+            }
+         ]
+      },
+      {
+         "name":"fixstat",
+         "base":"",
+         "fields":[
+            {
+               "name":"symbol",
+               "type":"symbol"
+            }
+         ]
+      },
+      {
+         "name":"tokissuer",
+         "base":"",
+         "fields":[
+            {
+               "name":"issuer",
+               "type":"account_name"
+            },
+            {
+               "name":"maximum_supply",
+               "type":"asset"
+            },
+            {
+               "name":"supply",
+               "type":"asset"
+            },
+            {
+               "name":"is_active",
+               "type":"bool"
+            }
+         ]
+      },
+      {
+         "name":"issueradd",
+         "base":"",
+         "fields":[
+            {
+               "name":"issuer",
+               "type":"account_name"
+            },
+            {
+               "name":"maximum_supply",
+               "type":"asset"
+            }
+         ]
+      },
+      {
+         "name":"issuerrem",
+         "base":"",
+         "fields":[
+            {
+               "name":"issuer",
+               "type":"account_name"
+            }
+         ]
       }
    ],
    "actions":[
@@ -120,6 +252,21 @@
          "ricardian_contract":""
       },
       {
+         "name":"issuefrom",
+         "type":"issuefrom",
+         "ricardian_contract":""
+      },
+      {
+         "name":"open",
+         "type":"open",
+         "ricardian_contract":""
+      },
+      {
+         "name":"close",
+         "type":"close",
+         "ricardian_contract":""
+      },
+      {
          "name":"create",
          "type":"create",
          "ricardian_contract":""
@@ -127,6 +274,26 @@
       {
          "name":"retire",
          "type":"retire",
+         "ricardian_contract":""
+      },
+      {
+         "name":"retirefrom",
+         "type":"retirefrom",
+         "ricardian_contract":""
+      },
+      {
+         "name":"fixstat",
+         "type":"fixstat",
+         "ricardian_contract":""
+      },
+      {
+         "name":"issueradd",
+         "type":"issueradd",
+         "ricardian_contract":""
+      },
+      {
+         "name":"issuerrem",
+         "type":"issuerrem",
          "ricardian_contract":""
       }
    ],
@@ -148,6 +315,17 @@
          "index_type":"i64",
          "key_names":[
             "supply"
+         ],
+         "key_types":[
+            "uint64"
+         ]
+      },
+      {
+         "name":"tokissuers",
+         "type":"tokissuer",
+         "index_type":"i64",
+         "key_names":[
+            "issuer"
          ],
          "key_types":[
             "uint64"

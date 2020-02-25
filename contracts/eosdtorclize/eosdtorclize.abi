@@ -24,7 +24,7 @@
 {"name":"rate_timeout","type":"i"},
 {"name":"query_timeout","type":"i"},
 {"name":"provablecb1a_interval","type":"i"},
-{"name":"eosnationdsp_interval","type":"i"},
+{"name":"delphioracle_interval","type":"i"},
 {"name":"equilibriumdsp_interval","type":"i"}
        ]
     },
@@ -34,7 +34,7 @@
 {"name":"rate_timeout","type":"i"},
 {"name":"query_timeout","type":"i"},
 {"name":"provablecb1a_interval","type":"i"},
-{"name":"eosnationdsp_interval","type":"i"},
+{"name":"delphioracle_interval","type":"i"},
 {"name":"equilibriumdsp_interval","type":"i"}
        ]
     },
@@ -65,10 +65,10 @@
 {"name":"update","type": "t"},
 {"name":"provablecb1a_price","type":"a"},
 {"name":"provablecb1a_update","type": "t"},
-{"name":"eosnationdsp_price","type":"a"},
-{"name":"eosnationdsp_update","type": "t"},
+{"name":"delphioracle_price","type":"a"},
+{"name":"delphioracle_update","type": "t"},
 {"name":"equilibriumdsp_price","type":"a"},
-{"name":"equilibriumdsp_update","type": "t"},
+{"name":"equilibriumdsp_update","type": "t"}
        ]
     },
     {
@@ -77,9 +77,19 @@
 {"name":"asset_symbol","type":"c"},
 {"name":"query","type":"s"},
 {"name":"price_type","type": "i"},
-{"name":"query_updated_at","type":"t"}
+{"name":"query_updated_at","type":"t"},
 {"name":"query_executed_at","type":"t"},
 {"name":"checksumm","type":"checksum256"}
+       ]
+    },
+    {
+       "name":"orasubscribe",
+       "fields":[
+{"name":"contract","type":"n"},
+{"name":"quantity","type":"a"},
+{"name":"callcount","type": "i"},
+{"name":"lastcall","type":"t"},
+{"name":"withdrawal_date","type":"t"}
        ]
     },
     {
@@ -183,18 +193,21 @@
 {"name":"queryadd","type":"queryadd"},
 {"name":"querydel","type":"querydel"},
 {"name":"currentver","type":"empty"},
+{"name":"getcurrent","type":"empty"},
 {"name":"unsubscribe","type":"unsubscribe"},
 {"name":"ratechanged","type":"ratechanged"},
 {"name":"xgeturi","type":"xgeturi"},
 {"name":"xorcclean","type":"xorcclean"},
 {"name":"xsignal","type":"xsignal"},
 {"name":"xschedule","type":"xschedule"},
-{"name":"orarecover","type":"empty"}
+{"name":"orarecover","type":"empty"},
+{"name":"delphirefres","type":"empty"}
   ],
   "tables": [
 {"name":"orasettings","type":"orasettings","index_type":"i64","key_names":["id"],"key_types":["uint64"]},
 {"name":"orarates","type":"orarates","index_type":"i64","key_names":["rate"],"key_types":["uint64"]},
-{"name":"oraqueries","type":"oraqueries","index_type":"i64","key_names":["asset_symbol"],"key_types":["uint64"]}
+{"name":"oraqueries","type":"oraqueries","index_type":"i64","key_names":["asset_symbol"],"key_types":["uint64"]},
+{"name":"subscribers","type":"orasubscribe","index_type":"i64","key_names":["asset_symbol"],"key_types":["contract"]}
   ]
 }
 

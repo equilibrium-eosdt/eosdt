@@ -1,0 +1,11 @@
+#ifndef INFO_HPP
+#define INFO_HPP
+
+#define ABI_SIZE "@ABI_SIZE@"
+#define WASM_SIZE "@WASM_SIZE@"
+#define GIT_BRANCH "@GIT_BRANCH@"
+#define GIT_COMMIT "@GIT_COMMIT@"
+#define GIT_VERSION "@GIT_VERSION@"
+#define CLOC "@CLOC@"
+
+#endif

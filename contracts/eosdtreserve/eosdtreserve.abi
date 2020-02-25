@@ -47,16 +47,25 @@
 { "name":"eos_balance","type":"a"},
 { "name":"withdrawal_date","type":"t"}
       ]
+    },
+    {
+      "name": "resparams",
+      "fields": [
+        { "name":"parameter_id","type":"l"},
+        { "name":"funds_sent","type":"uint8"}
+        ]
     }
   ],
   "actions": [
 {"name":"settingset","type":"settingset"},
 {"name":"withdraw","type":"withdraw"},
 {"name":"sendeos","type":"empty"},
-{"name":"currentver","type":"empty"}
+{"name":"currentver","type":"empty"},
+{"name":"paraminit","type":"empty"}
   ],
   "tables": [
 {"name":"ressettings","type":"ressettings","index_type":"i64","key_names": ["setting_id"],"key_types": ["uint64"]},
+{"name":"resparams","type":"resparams","index_type":"i64","key_names": ["param_id"],"key_types": ["uint64"]},
 {"name":"respositions","type":"respositions","index_type":"i64","key_names": ["position_id"],"key_types": ["uint64"]}
  ]
 }
