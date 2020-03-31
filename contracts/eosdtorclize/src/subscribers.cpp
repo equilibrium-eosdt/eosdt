@@ -1,15 +1,9 @@
 #include "eosdtorclize.hpp"
 
 namespace eosdt {
-    void eosdtorclize::on_rate_changed(const ds_time &update, const ds_asset &rate) {
+    void eosdtorclize::on_rate_changed(const ds_time &update, const ds_asset &rate, const ds_symbol &base) {
         orasubscribers_table orasubscribers(_self, _self.value);
         for (auto itr = orasubscribers.begin(); itr != orasubscribers.end(); itr++) {
-            /*eosio::action(
-                    eosio::permission_level{_self, "active"_n},
-                    EOSDTORCLIZE,
-                    "ratechanged"_n,
-                    std::make_tuple(itr->contract,update,rate)
-            ).send();*/
             eosio::transaction t;
             t.delay_sec = 0;
             t.expiration = time_get() + 300;
@@ -17,12 +11,12 @@ namespace eosdt {
                     eosio::permission_level(_self, "active"_n),
                     EOSDTORCLIZE,
                     "ratechanged"_n,
-                    std::make_tuple(itr->contract, update, rate)
+                    std::make_tuple(itr->contract, update, rate, base)
             );
 
             auto id = (((uint128_t) rate.symbol.raw()) << 64) | (((uint128_t) itr->contract.value));
             auto deleted = eosio::cancel_deferred(id);
-            ds_print("\r\ncancel: %, create: %", deleted, id);
+            ds_print("\r\ncancel: %, create: %, contract: %, update: %, rate: %, base: %", deleted, id, itr->contract, update, rate, base);
             t.send(id, _self);
         }
     }
@@ -34,7 +28,6 @@ namespace eosdt {
         if (to != _self)
             return;
         if (quantity.symbol == DAPP_SYMBOL) {
-            //issue/transfer for dsp
             return;
         }
         ds_assert(get_first_receiver() == ctrsetting_get().nutoken_account
@@ -69,23 +62,7 @@ namespace eosdt {
         auto itr = orasubscribers.find(contract.value);
         ds_assert(itr != orasubscribers.end(), "Wrong contract: %", contract);
         auto time = time_get();
-        /*
-        if (itr->withdrawal_date == ds_time(0)) {
-            orasubscribers.modify(itr, ds_account(0), [&](auto &row) {
-                row.withdrawal_date = time + UNSUBSCRIBE_FREEZE_PERIOD;
-            });
-            eosio::transaction t;
-            t.delay_sec = UNSUBSCRIBE_FREEZE_PERIOD;
-            t.actions.emplace_back(
-                    eosio::permission_level(_self, "active"_n),
-                    _self,
-                    "unsubscribe"_n,
-                    std::make_tuple(contract));
-            uint128_t id = contract.value;
-            auto deleted = eosio::cancel_deferred(id);
-            t.send(id, _self);
-        } else {
-            */
+        
             ds_assert(itr->withdrawal_date <= time, "Unsubscribe % more that current %.", itr->withdrawal_date, time);
             if (itr->quantity.amount > 0) {
                 eosio::action(
@@ -96,11 +73,11 @@ namespace eosdt {
                 ).send();
             }
             orasubscribers.erase(itr);
-  //      }
+  
         PRINT_STARTED("unsubscribe"_n);
     }
 
-    void eosdtorclize::ratechanged(const ds_account &contract, const ds_time &update, const ds_asset &rate) {
+    void eosdtorclize::ratechanged(const ds_account &contract, const ds_time &update, const ds_asset &rate, const ds_symbol &base) {
         ds_print("\r\ncontract: %, update: %, rate: %.",
                  contract, update, rate);
         require_recipient(contract);

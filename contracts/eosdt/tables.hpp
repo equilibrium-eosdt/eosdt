@@ -6,7 +6,12 @@ namespace eosdt {
 
     typedef eosio::multi_index<"accounts"_n, sysaccount> sysaccounts_table;
     typedef eosio::multi_index<"stat"_n, sysstat> sysstat_table;
-    typedef eosio::multi_index<"producers"_n, sysproducer> sysproducers_table;
+    typedef eosio::multi_index<"producers"_n, sysproducer,
+            eosio::indexed_by<"prototalvote"_n, eosio::const_mem_fun<sysproducer, double, &sysproducer::by_votes>  >
+    > sysproducers_table;
+    typedef eosio::multi_index<"global"_n, sysglobal> sysglobal_table;
+    typedef eosio::multi_index<"global4"_n, sysglobal4> sysglobal4_table;
+    typedef eosio::multi_index<"voters"_n, sysvoter> sysvoters_table;
 
     typedef eosio::multi_index<"rexpool"_n, rexpool> rexpool_table;
     typedef eosio::multi_index<"rexbal"_n, rexbalance> rexbalance_table;
@@ -16,15 +21,25 @@ namespace eosdt {
     typedef eosio::multi_index<"rexfund"_n, rexfund> rexfund_table;
 
     typedef eosio::multi_index<"orasettings"_n, orasettings> orasettings_table;
-    typedef eosio::multi_index<"orarates"_n, orarate> orarates_table;
-    typedef eosio::multi_index<"oraqueries"_n, oraqueries> oraqueries_table;
+    typedef eosio::multi_index<"orarates"_n, orarate_old> orarates_old_table;
+    typedef eosio::multi_index<"oraclerates"_n, orarate,
+            eosio::indexed_by<"ratebase"_n, eosio::const_mem_fun < orarate, __uint128_t, &orarate::by_rate_base>>> orarates_table;
+
+    typedef eosio::multi_index<"oraqueries"_n, oraqueries_old> oraqueries_old_table;
+    typedef eosio::multi_index<"oraclqueries"_n, oraqueries,
+    eosio::indexed_by<"assetsource"_n, eosio::const_mem_fun < oraqueries, __uint128_t, &oraqueries::by_asset_source>>> oraqueries_table;
     typedef eosio::multi_index<"subscribers"_n, orasubscribe> orasubscribers_table;
 
     typedef eosio::multi_index<"ctrsettings"_n, ctrsetting> ctrsettings_table;
+    typedef eosio::multi_index<"ctrsettings"_n, ctrsetting_time> ctrsettings_time_table;
     typedef eosio::multi_index<"parameters"_n, ctrparameter> ctrparameters_table;
+    typedef eosio::multi_index<"parameters"_n, posparameter> posparameters_table;
     typedef eosio::multi_index<"positions"_n, ctrposition,
             eosio::indexed_by<"maker"_n, eosio::const_mem_fun < ctrposition, uint64_t, &ctrposition::get_maker>>>
     ctrpositions_table;
+    typedef eosio::multi_index<"positions"_n, posposition,
+            eosio::indexed_by<"maker"_n, eosio::const_mem_fun < posposition, uint64_t, &posposition::get_maker>>>
+    pospositions_table;
     typedef eosio::multi_index<"ctrltvratios"_n, ctrltvratio,
             eosio::indexed_by<"byltvratio"_n,
                     eosio::const_mem_fun < ctrltvratio, double, &ctrltvratio::by_ltv_ratio>>>
@@ -59,7 +74,7 @@ namespace eosdt {
     typedef eosio::multi_index<"govparams"_n, govparam> govparams_table;
     typedef eosio::multi_index<"govbpparams"_n, govbpparam> govbpparams_table;
     typedef eosio::multi_index<"votingstatus"_n, votingstatus_item> votingstatus_table;
-
+    typedef eosio::multi_index<"govposcntrs"_n, govposcntr> govposcntrs_table;
 
     typedef eosio::multi_index<"ressettings"_n, ressetting> ressettings_table;
     typedef eosio::multi_index<"resparams"_n, resparam> resparams_table;

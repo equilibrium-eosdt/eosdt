@@ -579,25 +579,31 @@ bool __oraclize_randomDS_matchBytes32Prefix(const eosio::checksum256 content, co
 
 bool __oraclize_randomDS_test_pubkey_signature(const uint8_t whatever, const uint8_t v, const uint8_t r[32], const uint8_t s[32], const eosio::checksum256 digest, const uint8_t pubkey[64])
 {
+
+    eosio::ecc_signature ecc_sig;
+
+    //sig.type = whatever;
+    ecc_sig[0] = v;
+    for (int i = 0; i < 32; i++)
+      ecc_sig[i + 1] = r[i];
+    for (int i = 0; i < 32; i++)
+      ecc_sig[i + 1 + 32] = s[i];
+
     eosio::signature sig;
+    sig.emplace<0>(ecc_sig);
 
-    sig.type = whatever;
-    sig.data[0] = v;
-    for (int i = 0; i < 32; i++)
-      sig.data[i + 1] = r[i];
-    for (int i = 0; i < 32; i++)
-      sig.data[i + 1 + 32] = s[i];
+    const eosio::public_key pubkey_recovered_var = recover_key(digest, sig);
+    eosio::ecc_public_key pubkey_recovered = std::get<0>(pubkey_recovered_var);
 
-    const eosio::public_key pubkey_recovered = recover_key(digest, sig);
-
-    if (pubkey_recovered.data.size() != 33)
+    if (pubkey_recovered.size() != 33)
          return false;
-    if (pubkey_recovered.data[0] != 0x02 && pubkey_recovered.data[0] != 0x03)
+    if (pubkey_recovered[0] != 0x02 && pubkey_recovered[0] != 0x03)
         return false;
     // Discard the first (0x00) and the second byte (0x02 or 0x03)
     for (int i = 0; i < 32; i++)
-        if ((uint8_t)pubkey_recovered.data[i + 1] != pubkey[i])
+        if ((uint8_t)pubkey_recovered[i + 1] != pubkey[i])
             return false;
+
     return true;
 }
 

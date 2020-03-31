@@ -2,49 +2,6 @@
 #include "../oraclize/eos_api.hpp"
 
 namespace eosdt {
-    void eosdtorclize::queryadd(const ds_symbol &symbol, const ds_string &query, const uint8_t price_type) {
-        PRINT_STARTED("queryadd"_n)
-        require_auth(_self);
-
-        assert_price_type(price_type);
-
-        auto updated_at = time_get();
-
-        oraqueries_table oraqueries(_self, _self.value);
-
-        auto set = [&](auto &row) {
-            row.asset_symbol = symbol;
-            row.query = query;
-            row.price_type = price_type;
-
-            row.query_updated_at = updated_at;
-            row.query_executed_at = ds_time(0);
-            row.checksumm = checksum256();
-        };
-        auto itr = oraqueries.find(symbol.raw());
-        if (itr == oraqueries.end()) {
-            ds_print("\r\nemplace query");
-            oraqueries.emplace(_self, set);
-        } else {
-            ds_print("\r\nchange query");
-            oraqueries.modify(itr, _self, set);
-        }
-        PRINT_FINISHED("queryadd"_n)
-    }
-
-    void eosdtorclize::querydel(const ds_symbol &symbol) {
-        PRINT_STARTED("querydel"_n)
-        require_auth(_self);
-
-        oraqueries_table oraqueries(_self, _self.value);
-        auto itr = oraqueries.find(symbol.raw());
-        ds_assert(itr != oraqueries.end(), "unknown symbol %.", symbol);
-
-        oraqueries.erase(itr);
-
-        PRINT_FINISHED("querydel"_n)
-    }
-
 
     void eosdtorclize::callback(const ds_checksum &query_id, const std::vector<unsigned char> &result,
                                 const std::vector<unsigned char> &proof) {
@@ -78,47 +35,52 @@ namespace eosdt {
         });
 
         auto result_str = vector_to_string(result);
-        rate_set(itr->asset_symbol, source_type::provablecb1a, i_to_price_type(itr->price_type), result_str);
+        rate_set(itr->asset_symbol, source_type::provablecb1a, i_to_price_type(itr->price_type), itr->base, result_str);
         PRINT_FINISHED("callback"_n)
     }
 
-    bool eosdtorclize::is_query_running(const ds_symbol &symbol) {
+    bool eosdtorclize::is_query_running(const ds_symbol &symbol, const ds_account &source_contract, const ds_symbol &base) {
         PRINT_STARTED("isqueryrunn"_n)
         oraqueries_table oraqueries(_self, _self.value);
-        auto oraqueries_itr = oraqueries.find(symbol.raw());
-        ds_assert(oraqueries_itr != oraqueries.end(), "symbol % does not exists in oraqueries.", symbol);
+        auto index = oraqueries.template get_index<"assetsource"_n>();
+        auto itr = index.find(compress_key(symbol.code().raw(), source_contract.value^base.code().raw()));
+        ds_assert(itr != index.end(), "is_query_running symbol: %/% and contract: % does not exists in oraqueries.",
+                symbol, base, source_contract);
 
-        auto query = oraqueries_itr->query;
-        auto query_executed_at = oraqueries_itr->query_executed_at;
-        auto query_checksum = oraqueries_itr->checksumm;
+        auto query = itr->query;
+        auto query_executed_at = itr->query_executed_at;
+        auto query_checksum = itr->checksumm;
 
         auto elapsed = (time_get() - query_executed_at).to_seconds();
 
-        auto settings = orasetting_get();
+        auto query_timeout = orasetting_get().query_timeout;
 
-        auto result = query_checksum != checksum256() && elapsed <= settings.query_timeout;
+        auto result = query_checksum != checksum256() && elapsed <= query_timeout;
 
         PRINT_FINISHED("isqueryrunn"_n)
         return result;
     }
 
-    void eosdtorclize::refreshrates(const ds_symbol &token_symbol) {
+    void eosdtorclize::refreshrates(const ds_symbol &symbol, const ds_account &source_contract,
+            const ds_symbol &base) {
         PRINT_STARTED("refreshrates"_n)
         auto curr_now = time_get();
 
         oraqueries_table oraqueries(_self, _self.value);
-        auto oraqueries_itr = oraqueries.find(token_symbol.raw());
-        ds_assert(oraqueries_itr != oraqueries.end(), "unknown symbol %.", token_symbol);
+        auto index = oraqueries.template get_index<"assetsource"_n>();
+        auto itr = index.find(compress_key(symbol.code().raw(), source_contract.value^base.code().raw()));
+        ds_assert(itr != index.end(), "refreshrates symbol: %/% and contract: % does not exists in oraqueries.",
+                  symbol, base, source_contract);
 
-        auto query = oraqueries_itr->query;
-        auto query_executed_at = oraqueries_itr->query_executed_at;
-        auto query_checksum = oraqueries_itr->checksumm;
+        auto query = itr->query;
+        auto query_executed_at = itr->query_executed_at;
+        auto query_checksum = itr->checksumm;
 
         ds_print("\r\nquery: %", query);
         ds_print("\r\nelapsed(%) = curr_now(%) - query_executed_at(%)",
                  (curr_now - query_executed_at).to_seconds(), curr_now, query_executed_at);
 
-        auto is_already_running = is_query_running(token_symbol);
+        auto is_already_running = is_query_running(symbol, source_contract, base);
 
         if (is_already_running) {
             ds_print("\r\nSuch query is already running");
@@ -127,7 +89,7 @@ namespace eosdt {
 
             ds_assert(query_checksumm != checksum256(), "Bad query checksum. Try again later");
 
-            oraqueries.modify(oraqueries_itr, _self, [&](auto &row) {
+            index.modify(itr, _self, [&](auto &row) {
                 row.checksumm = query_checksumm;
                 row.query_executed_at = curr_now;
             });
@@ -137,5 +99,6 @@ namespace eosdt {
 
         PRINT_FINISHED("refreshrates"_n)
     }
+
 
 }

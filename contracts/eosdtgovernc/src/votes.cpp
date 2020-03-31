@@ -81,17 +81,20 @@ namespace eosdt {
     void eosdtgovernc::unvote(const ds_account &voter, const ds_account &proposal_name) {
         PRINT_STARTED("unvote"_n)
         require_auth(voter);
-        auto freeze_period = govsetting_get().freeze_period;
-        auto proposal = proposal_get(proposal_name);
-        auto time = time_get();
-        if (proposal.expires_at < time) {
-            ds_assert(time > ds_time(proposal.expires_at + freeze_period),
-                      "cannot unvote on an expired proposal within its freeze period.", proposal.expires_at,
-                      time);
+        if(proposal_name == BLOCKPRODUCEPROPOSAL) {
+            deactivate_bpvote_internal(voter);
+        }else{
+            auto freeze_period = govsetting_get().freeze_period;
+            auto proposal = proposal_get(proposal_name);
+            auto time = time_get();
+            if (proposal.expires_at < time) {
+                ds_assert(time > ds_time(proposal.expires_at + freeze_period),
+                          "cannot unvote on an expired proposal within its freeze period.", proposal.expires_at,
+                          time);
+            }
         }
 
-        govvotes_table
-                govvotes(_self, _self.value);
+        govvotes_table govvotes(_self, _self.value);
 
         auto index = govvotes.template get_index<"byproposal"_n>();
 

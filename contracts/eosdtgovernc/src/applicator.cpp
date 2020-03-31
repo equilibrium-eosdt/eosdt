@@ -1,158 +1,175 @@
 #include "eosdtgovernc.hpp"
 
 namespace eosdt {
-    void eosdtgovernc::apply_ctrsetting(const ds_string &json) {
-        auto eosdtcntract_account = govsetting_get().eosdtcntract_account;
-        ctrsettings_table ctrsettings(eosdtcntract_account, eosdtcntract_account.value);
-        auto itr = ctrsettings.find(0);
+    void eosdtgovernc::apply_ctrsetting(const ds_string &json, const std::map <ds_account, ds_account> &cntract_types,
+                                        const ds_account &pos_account, const char *pos_name) {
+        ctrsettings_table ctrsettings(pos_account, pos_account.value);
+        auto itr = ctrsettings.begin();
         ds_assert(itr != ctrsettings.end(), "Need to set up ctrsettings on ctract by forum.");
         auto apply_settings = *itr;
-        auto parser = get_json_parser(json.c_str());
+        auto parser = get_json_parser(json.c_str(), cntract_types);
         auto parse_status = parser.parse();
         auto settings_changed = false;
-        auto producers_changed = false;
         auto apply_producers = std::vector < ds_account > {};
         for (; parse_status == json_parser::STATUS_OK; parse_status = parser.parse()) {
-            if (parser.is_key_equals("eosdtcntract.governance_fee")) {
+            if (!parser.is_key_equals_ctr(pos_name)) {
+                continue;
+            }
+            auto ctr_len = strlen(pos_name);
+            if (parser.is_key_equals_key(ctr_len, ".governance_fee")) {
                 apply_settings.governance_fee = parser.get_out_double();
                 settings_changed = true;
-            } else if (parser.is_key_equals("eosdtcntract.stability_fee")) {
+            } else if (parser.is_key_equals_key(ctr_len, ".stability_fee")) {
                 apply_settings.stability_fee = parser.get_out_double();
                 settings_changed = true;
-            } else if (parser.is_key_equals("eosdtcntract.critical_ltv")) {
+            } else if (parser.is_key_equals_key(ctr_len, ".critical_ltv")) {
                 apply_settings.critical_ltv = parser.get_out_double();
                 settings_changed = true;
-            } else if (parser.is_key_equals("eosdtcntract.liquidation_penalty")) {
+            } else if (parser.is_key_equals_key(ctr_len, ".liquidation_penalty")) {
                 apply_settings.liquidation_penalty = parser.get_out_double();
                 settings_changed = true;
-            } else if (parser.is_key_equals("eosdtcntract.liquidator_discount")) {
+            } else if (parser.is_key_equals_key(ctr_len, ".liquidator_discount")) {
                 apply_settings.liquidator_discount = parser.get_out_double();
                 settings_changed = true;
-            } else if (parser.is_key_equals("eosdtcntract.nut_auct_ratio")) {
+            } else if (parser.is_key_equals_key(ctr_len, ".nut_auct_ratio")) {
                 apply_settings.nut_auct_ratio = parser.get_out_double();
                 settings_changed = true;
-            } else if (parser.is_key_equals("eosdtcntract.nut_discount")) {
+            } else if (parser.is_key_equals_key(ctr_len, ".nut_discount")) {
                 apply_settings.nut_discount = parser.get_out_double();
                 settings_changed = true;
-            } else if (parser.is_key_equals("eosdtcntract.profit_factor")) {
+            } else if (parser.is_key_equals_key(ctr_len, ".profit_factor")) {
                 apply_settings.profit_factor = parser.get_out_double();
                 settings_changed = true;
-            } else if (parser.is_key_equals("eosdtcntract.vote_period")) {
+            } else if (parser.is_key_equals_key(ctr_len, ".vote_period")) {
                 apply_settings.vote_period = parser.get_out_double();
                 settings_changed = true;
-            } else if (parser.is_key_equals("eosdtcntract.stake_period")) {
+            } else if (parser.is_key_equals_key(ctr_len, ".stake_period")) {
                 apply_settings.stake_period = parser.get_out_double();
                 settings_changed = true;
-            } else if (parser.is_key_equals("eosdtcntract.reserve_ratio")) {
+            } else if (parser.is_key_equals_key(ctr_len, ".reserve_ratio")) {
                 apply_settings.reserve_ratio = parser.get_out_double();
                 settings_changed = true;
-            } else if (parser.is_key_equals("eosdtcntract.staking_weight")) {
+            } else if (parser.is_key_equals_key(ctr_len, ".staking_weight")) {
                 apply_settings.staking_weight = parser.get_out_double();
                 settings_changed = true;
-            }else if (parser.is_key_equals("eosdtcntract.referral_min_stake")) {
+            } else if (parser.is_key_equals_key(ctr_len, ".referral_min_stake")) {
                 apply_settings.referral_min_stake = parser.get_out_asset();
                 settings_changed = true;
-            }else if (parser.is_key_equals("eosdtcntract.referral_ratio")) {
+            } else if (parser.is_key_equals_key(ctr_len, ".referral_ratio")) {
                 apply_settings.referral_ratio = parser.get_out_double();
                 settings_changed = true;
             }
         }
         ds_assert(parse_status == json_parser::STATUS_END, "\r\nproposal_json is invalid, code %", parse_status);
         if (settings_changed) {
-            eosio::action(
-                    eosio::permission_level{eosdtcntract_account, "active"_n},
-                    eosdtcntract_account,
-                    "settingset"_n,
-                    std::make_tuple(apply_settings.liquidator_account,
-                                    apply_settings.oraclize_account,
-                                    apply_settings.sttoken_account,
-                                    apply_settings.nutoken_account,
-                                    apply_settings.governance_fee,
-                                    apply_settings.stability_fee,
-                                    apply_settings.critical_ltv,
-                                    apply_settings.liquidation_penalty,
-                                    apply_settings.liquidator_discount,
-                                    apply_settings.nut_auct_ratio,
-                                    apply_settings.nut_discount,
-                                    apply_settings.profit_factor,
-                                    apply_settings.vote_period,
-                                    apply_settings.stake_period,
-                                    apply_settings.reserve_ratio,
-                                    apply_settings.staking_weight,
-                                    apply_settings.bpproxy_account,
-                                    apply_settings.governc_account,
-                                    apply_settings.referral_min_stake,
-                                    apply_settings.referral_ratio
-                                    )
-            ).send();
+            if (pos_account == EOSDTCNTRACT) {
+                eosio::action(
+                        eosio::permission_level{pos_account, "active"_n},
+                        pos_account,
+                        "settingset"_n,
+                        std::make_tuple(apply_settings.liquidator_account,
+                                        apply_settings.oraclize_account,
+                                        apply_settings.sttoken_account,
+                                        apply_settings.nutoken_account,
+                                        apply_settings.governance_fee,
+                                        apply_settings.stability_fee,
+                                        apply_settings.critical_ltv,
+                                        apply_settings.liquidation_penalty,
+                                        apply_settings.liquidator_discount,
+                                        apply_settings.nut_auct_ratio,
+                                        apply_settings.nut_discount,
+                                        apply_settings.profit_factor,
+                                        apply_settings.vote_period,
+                                        apply_settings.stake_period,
+                                        apply_settings.reserve_ratio,
+                                        apply_settings.staking_weight,
+                                        apply_settings.bpproxy_account,
+                                        apply_settings.governc_account,
+                                        apply_settings.referral_min_stake,
+                                        apply_settings.referral_ratio,
+                                        apply_settings.collateral_account,
+                                        apply_settings.collateral_token
+                        )
+                ).send();
+            } else {
+                eosio::action(
+                        eosio::permission_level{pos_account, "active"_n},
+                        pos_account,
+                        "settingset"_n,
+                        std::make_tuple(apply_settings.liquidator_account,
+                                        apply_settings.oraclize_account,
+                                        apply_settings.sttoken_account,
+                                        apply_settings.nutoken_account,
+                                        apply_settings.stability_fee,
+                                        apply_settings.critical_ltv,
+                                        apply_settings.liquidation_penalty,
+                                        apply_settings.liquidator_discount,
+                                        apply_settings.nut_auct_ratio,
+                                        apply_settings.nut_discount,
+                                        apply_settings.profit_factor,
+                                        apply_settings.governc_account,
+                                        apply_settings.collateral_account,
+                                        apply_settings.collateral_token
+                        )
+                ).send();
+            }
         }
     }
 
-    void eosdtgovernc::apply_liqsetting(const ds_string &json) {
-        if (json.find("eosdliqdatr") == ds_string::npos) {
-            return;
-        }
-        struct liqdatr_settings {
-            ds_ulong setting_id;
-            ds_account eosdtcntract_account;
-            uint8_t global_unlock;
-            ds_asset auction_price;
-
-            ds_ulong primary_key() const { return setting_id; }
-        };
-        auto liquidator_account = ctrsetting_get().liquidator_account;
-        liqsettings_table liqsettings(liquidator_account, liquidator_account.value);
-        auto itr = liqsettings.find(0);
+    void eosdtgovernc::apply_liqsetting(const ds_string &json, const std::map <ds_account, ds_account> &cntract_types,
+                                        const ds_account &liq_account, const char *liq_name) {
+        liqsettings_table liqsettings(liq_account, liq_account.value);
+        auto itr = liqsettings.begin();
         ds_assert(itr != liqsettings.end(), "Need to set up liqsettings on liqdatr by forum.");
         auto apply_struct = *itr;
-        auto parser = get_json_parser(json.c_str());
+        auto parser = get_json_parser(json.c_str(), cntract_types);
         auto parse_status = parser.parse();
         auto change_exists = false;
         for (; parse_status == json_parser::STATUS_OK; parse_status = parser.parse()) {
-            if (parser.is_key_equals("eosdliqdatr.eosdtcntract_account")) {
-                apply_struct.eosdtcntract_account = parser.get_out_name();
+            if (parser.is_key_equals(liq_name,".position_account")) {
+                apply_struct.position_account = parser.get_out_name();
                 change_exists = true;
             }
         }
         ds_assert(parse_status == json_parser::STATUS_END, "\r\nproposal_json is invalid, code %", parse_status);
         if (change_exists) {
             eosio::action(
-                    eosio::permission_level{liquidator_account, "active"_n},
-                    liquidator_account,
+                    eosio::permission_level{liq_account, "active"_n},
+                    liq_account,
                     "settingset"_n,
-                    std::make_tuple(apply_struct.eosdtcntract_account)
+                    std::make_tuple(apply_struct.position_account,apply_struct.burn_rate, apply_struct.gov_return_rate)
             ).send();
         }
     }
 
-    void eosdtgovernc::apply_orasetting(const ds_string &json) {
-        if (json.find("eosdtorclize") == ds_string::npos) {
-            return;
-        }
-        ds_print("\r\napply_oracle_setting");
-        auto oraclize_account = ctrsetting_get().oraclize_account;
-        orasettings_table orasettings(oraclize_account, oraclize_account.value);
-        auto itr = orasettings.find(0);
+    void eosdtgovernc::apply_orasetting(const ds_string &json, const std::map <ds_account, ds_account> &cntract_types,
+                                        const ds_account &ora_account, const char *ora_name) {
+        orasettings_table orasettings(ora_account, ora_account.value);
+        auto itr = orasettings.begin();
         ds_assert(itr != orasettings.end(), "Need to set up orasetings on oracle by forum.");
         auto apply_struct = *itr;
-        auto parser = get_json_parser(json.c_str());
+        auto parser = get_json_parser(json.c_str(), cntract_types);
         auto parse_status = parser.parse();
         auto change_exists = false;
         for (; parse_status == json_parser::STATUS_OK; parse_status = parser.parse()) {
-            if (parser.is_key_equals("eosdtorclize.rate_timeout")) {
+            if (!parser.is_key_equals_ctr(ora_name)) {
+                continue;
+            }
+            auto ctr_len = strlen(ora_name);
+            if (parser.is_key_equals_key(ctr_len,".rate_timeout")) {
                 ds_print("\r\nrate_timeout");
                 apply_struct.rate_timeout = parser.get_out_int();
                 change_exists = true;
-            } else if (parser.is_key_equals("eosdtorclize.query_timeout")) {
+            } else if (parser.is_key_equals_key(ctr_len,".query_timeout")) {
                 apply_struct.query_timeout = parser.get_out_int();
                 change_exists = true;
-            } else if (parser.is_key_equals("eosdtorclize.provablecb1a_interval")) {
+            } else if (parser.is_key_equals_key(ctr_len,".provablecb1a_interval")) {
                 apply_struct.provablecb1a_interval = parser.get_out_int();
                 change_exists = true;
-            } else if (parser.is_key_equals("eosdtorclize.delphioracle_interval")) {
+            } else if (parser.is_key_equals_key(ctr_len,".delphioracle_interval")) {
                 apply_struct.delphioracle_interval = parser.get_out_int();
                 change_exists = true;
-            } else if (parser.is_key_equals("eosdtorclize.equilibriumdsp_interval")) {
+            } else if (parser.is_key_equals_key(ctr_len,".equilibriumdsp_interval")) {
                 apply_struct.equilibriumdsp_interval = parser.get_out_int();
                 change_exists = true;
             }
@@ -160,8 +177,8 @@ namespace eosdt {
         ds_assert(parse_status == json_parser::STATUS_END, "\r\nproposal_json is invalid, code %", parse_status);
         if (change_exists) {
             eosio::action(
-                    eosio::permission_level{oraclize_account, "active"_n},
-                    oraclize_account,
+                    eosio::permission_level{ora_account, "active"_n},
+                    ora_account,
                     "settingset"_n,
                     std::make_tuple(
                             apply_struct.rate_timeout,
@@ -174,49 +191,51 @@ namespace eosdt {
 
     }
 
-    void eosdtgovernc::apply_govsetting(const ds_string &json) {
-        if (json.find("eosdtgovernc") == ds_string::npos) {
-            return;
-        }
+    void eosdtgovernc::apply_govsetting(const ds_string &json, const std::map <ds_account, ds_account> &cntract_types,
+                                        const ds_account &gov_account, const char *gov_name) {
         auto apply_struct = govsetting_get();
-        auto parser = get_json_parser(json.c_str());
+        auto parser = get_json_parser(json.c_str(), cntract_types);
         auto parse_status = parser.parse();
         auto change_exists = false;
         for (; parse_status == json_parser::STATUS_OK; parse_status = parser.parse()) {
-            if (parser.is_key_equals("eosdtgovernc.eosdtcntract_account")) {
-                apply_struct.eosdtcntract_account = parser.get_out_name();
+            if (!parser.is_key_equals_ctr(gov_name)) {
+                continue;
+            }
+            auto ctr_len = strlen(gov_name);
+            if (parser.is_key_equals_key(ctr_len,".position_account")) {
+                apply_struct.position_account = parser.get_out_name();
                 change_exists = true;
-            } else if (parser.is_key_equals("eosdtgovernc.min_proposal_weight")) {
+            } else if (parser.is_key_equals_key(ctr_len,".min_proposal_weight")) {
                 apply_struct.min_proposal_weight = parser.get_out_asset();
                 change_exists = true;
-            } else if (parser.is_key_equals("eosdtgovernc.freeze_period")) {
+            } else if (parser.is_key_equals_key(ctr_len,".freeze_period")) {
                 apply_struct.freeze_period = parser.get_out_int();
                 change_exists = true;
-            } else if (parser.is_key_equals("eosdtgovernc.min_participation")) {
+            } else if (parser.is_key_equals_key(ctr_len,".min_participation")) {
                 apply_struct.min_participation = parser.get_out_double();
                 change_exists = true;
-            } else if (parser.is_key_equals("eosdtgovernc.success_margin")) {
+            } else if (parser.is_key_equals_key(ctr_len,".success_margin")) {
                 apply_struct.success_margin = parser.get_out_double();
                 change_exists = true;
-            } else if (parser.is_key_equals("eosdtgovernc.top_holders_amount")) {
+            } else if (parser.is_key_equals_key(ctr_len,".top_holders_amount")) {
                 apply_struct.top_holders_amount = parser.get_out_int();
                 change_exists = true;
-            } else if (parser.is_key_equals("eosdtgovernc.max_bp_count")) {
+            } else if (parser.is_key_equals_key(ctr_len,".max_bp_count")) {
                 apply_struct.max_bp_count = parser.get_out_int();
                 change_exists = true;
-            } else if (parser.is_key_equals("eosdtgovernc.max_bp_votes")) {
+            } else if (parser.is_key_equals_key(ctr_len,".max_bp_votes")) {
                 apply_struct.max_bp_votes = parser.get_out_int();
                 change_exists = true;
-            } else if (parser.is_key_equals("eosdtgovernc.min_vote_stake")) {
+            } else if (parser.is_key_equals_key(ctr_len,".min_vote_stake")) {
                 apply_struct.min_vote_stake = parser.get_out_asset();
                 change_exists = true;
-            } else if (parser.is_key_equals("eosdtgovernc.unstake_period")) {
+            } else if (parser.is_key_equals_key(ctr_len,".unstake_period")) {
                 apply_struct.unstake_period = parser.get_out_int();
                 change_exists = true;
-            } else if (parser.is_key_equals("eosdtgovernc.reward_weight")) {
+            } else if (parser.is_key_equals_key(ctr_len,".reward_weight")) {
                 apply_struct.unstake_period = parser.get_out_int();
                 change_exists = true;
-            } else if (parser.is_key_equals("eosdtgovernc.min_reward")) {
+            } else if (parser.is_key_equals_key(ctr_len,".min_reward")) {
                 apply_struct.unstake_period = parser.get_out_int();
                 change_exists = true;
             }
@@ -227,7 +246,7 @@ namespace eosdt {
                     eosio::permission_level{_self, "active"_n},
                     _self,
                     "settingset"_n,
-                    std::make_tuple(apply_struct.eosdtcntract_account,
+                    std::make_tuple(apply_struct.position_account,
                                     apply_struct.min_proposal_weight,
                                     apply_struct.freeze_period,
                                     apply_struct.min_participation,
@@ -237,8 +256,7 @@ namespace eosdt {
                                     apply_struct.max_bp_votes,
                                     apply_struct.min_vote_stake,
                                     apply_struct.unstake_period,
-                                    apply_struct.reward_weight,
-                                    apply_struct.min_reward
+                                    apply_struct.reward_weight
                     )
             ).send();
 
@@ -251,6 +269,7 @@ namespace eosdt {
         auto settings = govsetting_get();
         auto freeze_period = settings.freeze_period;
         auto time = time_get();
+        ds_assert(proposal.proposal_type == 1, "proposal_type % is unsupported", proposal.proposal_type);
         ds_assert(proposal.expires_at <= time, "proposal % did not expire, need to wait %.",
                   proposal_name, proposal.expires_at);
         ds_assert(proposal.expires_at + freeze_period > time,
@@ -278,24 +297,29 @@ namespace eosdt {
         ds_assert(success_margin >= settings.success_margin - 0.0001,
                   "success_margin (%) less than necessary % for proposal %.",
                   success_margin, settings.success_margin, proposal_name);
-
-
-        if (proposal.proposal_json.find("eosdtcntract") != ds_string::npos) {
-            if (proposal.proposal_type == 1) {
-                apply_ctrsetting(proposal.proposal_json);
+        auto json = proposal.proposal_json;
+        auto cntract_types = getposcntr(settings.position_account);
+        for (auto item:cntract_types) {
+            auto ctr = item.first;
+            auto ctr_name = ctr.to_string().c_str();
+            auto type = item.second;
+            if (json.find(ctr_name) != ds_string::npos) {
+                if (type == EOSDTCNTRACT) {
+                    apply_ctrsetting(json, cntract_types, ctr, ctr_name);
+                } else if (type == EOSDTLIQDATR) {
+                    apply_liqsetting(json, cntract_types, ctr, ctr_name);
+                } else if (type == EOSDTORCLIZE) {
+                    apply_orasetting(json, cntract_types, ctr, ctr_name);
+                } else if (type == EOSDTGOVERNC) {
+                    apply_govsetting(json, cntract_types, ctr, ctr_name);
+                }
             }
         }
-
-        apply_liqsetting(proposal.proposal_json);
-
-        apply_orasetting(proposal.proposal_json);
-
-        apply_govsetting(proposal.proposal_json);
 
         PRINT_FINISHED("apply"_n)
     }
 
-    ds_checksum eosdtgovernc::calc_accounts_hash(std::vector<ds_account> &accounts) {
+    ds_checksum eosdtgovernc::calc_accounts_hash(std::vector <ds_account> &accounts) {
         auto n = accounts.size();
         constexpr size_t size = sizeof(ds_account);
 
@@ -351,10 +375,9 @@ namespace eosdt {
             return;
         }
         std::sort(byvotes.begin(), byvotes.end(),
-             [](const govbpvote & a, const govbpvote & b)
-             {
-                 return a.votes > b.votes;
-             });
+                  [](const govbpvote &a, const govbpvote &b) {
+                      return a.votes > b.votes;
+                  });
         ds_print("\r\ndone vector");
 
         auto index = govbpvotes.get_index<"byvotes"_n>();
@@ -416,9 +439,7 @@ namespace eosdt {
                     "eosio"_n,
                     "voteproducer"_n,
                     std::make_tuple(eosdtbpproxy_account, proxy, top_producers)).send();
-        }
-        else
-        {
+        } else {
             updatebilling(std::set<ds_account>(top_producers.begin(), top_producers.end()));
         }
         PRINT_FINISHED("applybpproxy"_n)

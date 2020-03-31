@@ -23,10 +23,10 @@ namespace eosdt {
         }
 
         auto govsettings = govsetting_get();
-        auto balance = balance_get(proposer, UTILITY_SYMBOL) + voting_amount_get(proposer, UTILITY_SYMBOL);
-        auto min_proposal_weight = op_mul_div(orarate_get(UTILITY_SYMBOL),
+        auto balance = balance_get(proposer, NUT_SYMBOL) + voting_amount_get(proposer, NUT_SYMBOL);
+        auto min_proposal_weight = op_mul_div(ds_asset(pow(10.0,NUT_SYMBOL_DECIMAL),NUT_SYMBOL),
                                               to_ldouble(govsettings.min_proposal_weight) * already_created,
-                                              to_ldouble(orarate_get(USD_SYMBOL)));
+                                              to_ldouble(orarate_get(USD_SYMBOL, NUT_SYMBOL)));
         ds_assert(min_proposal_weight <= balance, "balance % not enough to make a proposal, expected >= % ",
                   balance, min_proposal_weight);
 
@@ -34,7 +34,7 @@ namespace eosdt {
         ds_assert(title.size() < 1024, "title should be less than 1024 characters long.");
         ds_assert(proposal_json.size() < 32768, "proposal_json should be less than 32768 characters long.");
         ds_assert(proposal_type == 1, "proposal_type % is unsupported", proposal_type);
-        validate_proposal_json_main(proposal_json.c_str());
+        validate_proposal_json_main(proposal_json.c_str(),getposcntr(govsettings.position_account));
 
         auto time = time_get();
         ds_assert(expires_at > time, "expires_at (%) must be a value in the future.", expires_at);

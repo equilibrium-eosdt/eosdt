@@ -1,6 +1,7 @@
 #include "eosdtgovernc.hpp"
 
 #include "settings.cpp"
+#include "poscontracts.cpp"
 #include "json_parser.hpp"
 #include "proposals.cpp"
 #include "voters.cpp"
@@ -13,7 +14,7 @@
 namespace eosdt {
 }/// namespace eosdt
 
-EOSIO_DISPATCH_EX(eosdt::eosdtgovernc, (currentver)(settingset)
+EOSIO_DISPATCH_EX(eosdt::eosdtgovernc, (currentver)(settingset)(paraminit)
         (propose)(clnproposal)
         (transfer)(unstake)
         (vote)(unvote)
@@ -21,4 +22,5 @@ EOSIO_DISPATCH_EX(eosdt::eosdtgovernc, (currentver)(settingset)
         (expire)(bpvotescount)(voterreborn)
         (bpregister)(bpsetparams)(bpunregister)
         (reinit)(calcnutbal)
+        (addposcntr)(remposcntr)
 )

@@ -2,10 +2,10 @@
 #define INFO_HPP
 
 #define ABI_SIZE "8702"
-#define WASM_SIZE "62567"
-#define GIT_BRANCH "release_2020_02_18"
-#define GIT_COMMIT "20b901f7"
-#define GIT_VERSION "Tue Feb 18 14:47:55 2020"
-#define CLOC "640"
+#define WASM_SIZE "55043"
+#define GIT_BRANCH "release_2020_03_30"
+#define GIT_COMMIT "7c5936827"
+#define GIT_VERSION "Fri Mar 27 16:15:56 2020"
+#define CLOC "639"
 
 #endif

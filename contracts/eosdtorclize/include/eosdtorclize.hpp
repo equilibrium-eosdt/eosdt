@@ -25,31 +25,30 @@ namespace eosdt {
 
         void unsubscribe(const ds_account &contract);
 
-        void ratechanged(const ds_account &contract, const ds_time &update, const ds_asset &rate);
+        void ratechanged(const ds_account &contract, const ds_time &update, const ds_asset &rate, const ds_symbol &base);
 
-        void queryadd(const ds_symbol &symbol, const ds_string &query, const uint8_t price_type);
+        void queryadd(const ds_symbol &symbol, const ds_account &source_contract, const ds_string &query,
+                const uint8_t price_type, const ds_symbol &base);
 
-        void querydel(const ds_symbol &symbol);
+        void querydel(const ds_symbol &symbol, const ds_account &source_contract, const ds_symbol &base);
 
         void callback(const eosio::checksum256 &query_id, const std::vector<unsigned char> &result,
                       const std::vector<unsigned char> &proof);
 
-        void comonrefresh(const ds_symbol &symbol, const ds_account &action);
+        void comonrefresh(const ds_symbol &symbol, const ds_symbol &base, const ds_account &action);
 
-        void refreshutil(const ds_symbol &symbol);
+        void refreshutil(const ds_symbol &symbol, const ds_symbol &base);
 
-        void masterefresh(const ds_symbol &token_symbol);
+        void masterefresh(const ds_symbol &symbol, const ds_symbol &base);
 
-        void stoprefresh(const ds_symbol &symbol);
+        void stoprefresh(const ds_symbol &symbol, const ds_symbol &base);
 
-        void startrefresh(const ds_symbol &token_symbol);
+        void startrefresh(const ds_symbol &symbol, const ds_symbol &base);
 
         void delphirefres();
 
-        void delphirefres_internal(const ds_account source);
-
     private:
-        void on_rate_changed(const ds_time &update, const ds_asset &rate);
+        void on_rate_changed(const ds_time &update, const ds_asset &rate, const ds_symbol &base);
 
         auto parse_price(const ds_symbol &symbol, const char *data);
 
@@ -60,15 +59,21 @@ namespace eosdt {
         void set_median(const ds_int &rate_timeout, orarate &orarate);
         void rate_set(const ds_symbol &token_symbol, const source_type &source, const price_type &price_type,
                 const ds_string &data);
+        void rate_set(const ds_symbol &token_symbol, const source_type &source, const price_type &price_type,
+                      const ds_symbol &base, const ds_string &data);
         void rate_set(const source_type &source, const price_type &price_type, const ds_asset &data);
+        void rate_set(const source_type &source, const price_type &price_type, const ds_symbol &base,
+                const ds_asset &data);
 
-        bool is_query_running(const ds_symbol &symbol);
+        void updtoldrates(const ds_time &time, const ds_asset &rate, const ds_symbol &base);
 
-        void refreshrates(const ds_symbol &token_symbol);
+        bool is_query_running(const ds_symbol &symbol, const ds_account &source_contract, const ds_symbol &base);
 
-        void create_tran(const ds_symbol &symbol, const ds_account &action, const ds_int &interval);
+        void refreshrates(const ds_symbol &symbol, const ds_account &source_contract, const ds_symbol &base);
 
-        void cancel_tran(const ds_symbol &symbol, const ds_account &action);
+        void create_tran(const ds_symbol &symbol, const ds_symbol &base, const ds_account &action, const ds_int &interval);
+
+        void cancel_tran(const ds_symbol &symbol, const ds_symbol &base, const ds_account &action);
 
     };
 } /// namespace eosdt

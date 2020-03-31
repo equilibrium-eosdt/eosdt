@@ -5,6 +5,8 @@
 #include <eosio/transaction.hpp>
 #include <eosio/system.hpp>
 #include <eosio/crypto.hpp>
+#include <eosio/privileged.hpp>
+#include <eosio/binary_extension.hpp>
 
 #define ds_int int
 #define ds_uint unsigned int
@@ -34,6 +36,7 @@ constexpr static ds_uint MONTHS_IN_SECONDS = (ds_uint) (365.25 * 24 * 60 * 60 / 
 #define PRINT_STARTED(ACTION)
 #define PRINT_FINISHED(ACTION)
 
+
 #define EOS_SYMBOL_STR "EOS"
 #define EOS_SYMBOL_DECIMAL 4
 #define REX_SYMBOL_STR "REX"
@@ -52,6 +55,9 @@ constexpr static ds_uint MONTHS_IN_SECONDS = (ds_uint) (365.25 * 24 * 60 * 60 / 
 #define DAPP_SYMBOL_STR "DAPP"
 #define DAPP_SYMBOL_PAD_STR " " DAPP_SYMBOL_STR
 #define DAPP_SYMBOL_DECIMAL 4
+#define KG_SYMBOL_STR "KGRAM"
+#define KG_SYMBOL_PAD_STR " " KG_SYMBOL_STR
+#define KG_SYMBOL_DECIMAL 4
 
 #define EOSCTRACT_STR "eosio.token"
 #define EOSDTCNTRACT_STR "eosdtcntract"
@@ -71,6 +77,8 @@ constexpr static ds_uint MONTHS_IN_SECONDS = (ds_uint) (365.25 * 24 * 60 * 60 / 
 #define EOSDTGOVERNC "eosdtgovernc"_n
 #define EOSDTRESERVE "eosdtreserve"_n
 #define EOSDTLOCKUPP "eosdtlockupp"_n
+#define EOSDTKGTOKEN "eosdtkgtoken"_n
+#define EOSDTPOSCONT "eosdtposcont"_n
 
 #define BLOCKPRODUCEPROPOSAL "blockproduce"_n
 
@@ -96,7 +104,8 @@ constexpr static ds_uint MONTHS_IN_SECONDS = (ds_uint) (365.25 * 24 * 60 * 60 / 
 #define DAPP_SYMBOL ds_symbol(DAPP_SYMBOL_STR,DAPP_SYMBOL_DECIMAL)
 #define DAPP_SYMBOL_VALUE DAPP_SYMBOL.value()
 #define EMPTY_SYMBOL (ds_symbol(0ull))
-
+#define KG_SYMBOL ds_symbol(KG_SYMBOL_STR,KG_SYMBOL_DECIMAL)
+#define KG_SYMBOL_VALUE KG_SYMBOL.value()
 
 #define NEED_TO_SET_UP "need to set up"
 #define ALREADY_STORED "already stored"

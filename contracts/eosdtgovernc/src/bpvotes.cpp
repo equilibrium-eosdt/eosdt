@@ -3,10 +3,10 @@
 namespace eosdt {
     auto eosdtgovernc::get_json_parser_for_bpvotes(const char *json) {
         json_parser::k_v_map key_values;
+        json_parser::c_c_map cntract_types;
 
         key_values.insert(json_parser::k_v_pair("eosdtbpproxy.producers", json_parser::VALUE_ARRAY));
-
-        return json_parser(json, key_values);
+        return json_parser(json, key_values, cntract_types);
     }
 
     void eosdtgovernc::validate_bpvote_json(const ds_string &vote_json) {
@@ -31,14 +31,14 @@ namespace eosdt {
         }
     }
 
-    void eosdtgovernc::activate_bpvote_internal(const ds_account &voter) {
+    void eosdtgovernc::activate_bpvote_internal(const ds_account &voter, const ds_asset &transfer_amount) {
         ds_print("\r\nstart activate_bpvote_internal");
-        auto voting_amount = voting_amount_get(voter, UTILITY_SYMBOL);
+        auto value = voting_amount_get(voter, UTILITY_SYMBOL);
+        auto voting_amount = value;
         govvotes_table govvotes(_self, _self.value);
         auto index = govvotes.template get_index<"byproposal"_n>();
         auto itr = index.find(compress_key(BLOCKPRODUCEPROPOSAL.value, voter.value));
         if (itr != index.end() and voting_amount.amount > 0) {
-            govbpvotes_table govbpvotes(_self, _self.value);
             std::vector <ds_account> vote_producers;
             auto parser = get_json_parser_for_bpvotes(itr->vote_json.c_str());
             auto parse_status = parser.parse();
@@ -58,6 +58,7 @@ namespace eosdt {
             }
             for (auto bpaccount:vote_producers) {
                 ds_print("\r\ngovbpvotes.find: account: %", bpaccount);
+                govbpvotes_table govbpvotes(_self, _self.value);
                 auto itr = govbpvotes.find(bpaccount.value);
                 if (itr == govbpvotes.end()) {
                     ds_print("\r\nactivate.emplace: account: %, amount: %.", bpaccount, voting_amount);
@@ -66,7 +67,8 @@ namespace eosdt {
                         b.votes = voting_amount;
                     });
                 } else {
-                    ds_print("\r\nactivate.modify: account: %, amount: %.", bpaccount, voting_amount);
+                    ds_print("\r\nactivate.modify: account: %, amount: % (+ votes: % = %).",
+                            bpaccount, voting_amount, itr->votes, itr->votes + voting_amount);
                     govbpvotes.modify(itr, _self, [&](auto &b) {
                         b.votes += voting_amount;
                     });
@@ -77,12 +79,12 @@ namespace eosdt {
     }
 
     void eosdtgovernc::deactivate_bpvote_internal(const ds_account &voter) {
-        auto voting_amount = voting_amount_get(voter, UTILITY_SYMBOL);
+        auto value = voting_amount_get(voter, NUT_SYMBOL);
+        auto voting_amount = value;
         govvotes_table govvotes(_self, _self.value);
         auto index = govvotes.template get_index<"byproposal"_n>();
         auto itr = index.find(compress_key(BLOCKPRODUCEPROPOSAL.value, voter.value));
         if (itr != index.end() and voting_amount.amount > 0) {
-            govbpvotes_table govbpvotes(_self, _self.value);
             std::vector <ds_account> vote_producers;
             auto parser = get_json_parser_for_bpvotes(itr->vote_json.c_str());
             auto parse_status = parser.parse();
@@ -101,13 +103,15 @@ namespace eosdt {
                 }
             }
             for (auto bpaccount:vote_producers) {
+                govbpvotes_table govbpvotes(_self, _self.value);
                 auto itr = govbpvotes.find(bpaccount.value);
                 if (itr != govbpvotes.end()) {
                     if (itr->votes == voting_amount) {
                         ds_print("\r\nactivate.erase: account: %, amount: %.", bpaccount, voting_amount);
                         govbpvotes.erase(itr);
                     } else {
-                        ds_print("\r\nactivate.modify: account: %, amount: %.", bpaccount, voting_amount);
+                        ds_print("\r\nactivate.modify: account: %, amount: % (- votes: % = %).",
+                                bpaccount, voting_amount, itr->votes,itr->votes-voting_amount);
                         govbpvotes.modify(itr, _self, [&](auto &b) {
                             b.votes -= voting_amount;
                         });

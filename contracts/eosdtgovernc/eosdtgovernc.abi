@@ -24,7 +24,7 @@
       "name": "govsetting",
       "fields": [
 {"name":"setting_id","type":"l"},
-{"name":"eosdtcntract_account","type":"n"},
+{"name":"position_account","type":"n"},
 {"name":"min_proposal_weight","type":"a"},
 {"name":"freeze_period","type":"u"},
 {"name":"min_participation","type":"f"},
@@ -35,13 +35,13 @@
 {"name":"min_vote_stake","type":"a"},
 {"name":"unstake_period","type":"u"},
 {"name":"reward_weight","type":"f"},
-{"name":"min_reward","type":"a"}
+{"name":"stake_reward","type":"f"}
       ]
     },
     {
       "name": "settingset",
       "fields": [
-{"name":"eosdtcntract_account","type":"n"},
+{"name":"position_account","type":"n"},
 {"name":"min_proposal_weight","type":"a"},
 {"name":"freeze_period","type":"u"},
 {"name":"min_participation","type":"f"},
@@ -52,7 +52,7 @@
 {"name":"min_vote_stake","type":"a"},
 {"name":"unstake_period","type":"u"},
 {"name":"reward_weight","type":"f"},
-{"name":"min_reward","type":"a"}
+{"name":"stake_reward","type":"f"}
        ]
     },
     {
@@ -108,7 +108,8 @@
       "name": "govparam",
       "fields": [
 {"name":"param_id","type":"l"},
-{"name":"NUT_voting_balance","type": "a"}
+{"name":"NUT_voting_balance","type": "a"},
+{"name":"min_reward","type": "a"}
        ]
     },
     {
@@ -186,15 +187,8 @@
        ]
     },
     {
-       "name":"bpregister",
+       "name":"bpreward",
        "fields":[
-{"name":"bp_name","type":"n"},
-{"name":"reward_amount","type":"a"}
-       ]
-    },
-    {
-       "name": "bpsetparams",
-       "fields": [
 {"name":"bp_name","type":"n"},
 {"name":"reward_amount","type":"a"}
        ]
@@ -204,11 +198,30 @@
        "fields": [
 {"name":"bp_name","type":"n"}
        ]
+    },
+    {
+       "name": "govposcntr",
+       "fields": [
+{"name":"position_account","type":"n"}
+       ]
+    },
+    {
+       "name":"addposcntr",
+       "fields":[
+{"name":"position_account","type":"n"}
+       ]
+    },
+    {
+       "name":"remposcntr",
+       "fields":[
+{"name":"position_account","type":"n"}
+       ]
     }
   ],
   "actions": [
 {"name":"settingset","type":"settingset"},
 {"name":"currentver","type":"empty"},
+{"name":"paraminit","type":"empty"},
 {"name":"propose","type":"propose"},
 {"name":"vote","type":"vote"},
 {"name":"unvote","type":"unvote"},
@@ -219,11 +232,13 @@
 {"name":"applybpproxy","type":"empty"},
 {"name":"bpvotescount","type":"empty"},
 {"name":"voterreborn","type":"voterreborn"},
-{"name":"bpregister","type":"bpregister"},
-{"name":"bpsetparams","type":"bpsetparams"},
+{"name":"bpregister","type":"bpreward"},
+{"name":"bpsetparams","type":"bpreward"},
 {"name":"bpunregister","type":"bpunregister"},
 {"name":"reinit","type":"empty"},
-{"name":"calcnutbal","type":"empty"}
+{"name":"calcnutbal","type":"empty"},
+{"name":"addposcntr","type":"addposcntr"},
+{"name":"remposcntr","type":"remposcntr"}
   ],
   "tables": [
 {"name":"govsettings","type":"govsetting","index_type":"i64","key_names": ["setting_id"],"key_types": ["uint64"]},
@@ -234,7 +249,8 @@
 {"name":"bpvotes","type":"bpvotes","index_type":"i64","key_names": ["producer"],"key_types": ["uint64"]},
 {"name":"govparams","type":"govparam","index_type":"i64","key_names": ["param_id"],"key_types": ["uint64"]},
 {"name":"govbpparams","type":"govbpparam","index_type":"i64","key_names": ["bp_name"],"key_types": ["uint64"]},
-{"name":"votingstatus","type":"votingstatus","index_type":"i64","key_names": ["id"],"key_types": ["uint64"]}
+{"name":"votingstatus","type":"votingstatus","index_type":"i64","key_names": ["id"],"key_types": ["uint64"]},
+{"name":"govposcntrs","type":"govposcntr","index_type":"i64","key_names": ["position_account"],"key_types": ["uint64"]}
  ],
   "ricardian_clauses": [],
   "abi_extensions": []

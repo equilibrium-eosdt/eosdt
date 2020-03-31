@@ -44,20 +44,22 @@ namespace eosdt {
     auto eosdtorclize::get_usd_rate() {
         PRINT_STARTED("getusdrate"_n)
 
+        auto base = EOS_SYMBOL;
         auto symbol = USD_SYMBOL;
         orarates_table orarates(_self, _self.value);
-        auto itr = orarates.find(symbol.raw());
-        ds_assert(itr != orarates.end(), "rates does not exists for symbol: '%'.", symbol);
+        auto index = orarates.template get_index<"ratebase"_n>();
+        auto rate_itr = index.find(compress_key(symbol.code().raw(), base.code().raw()));
+        ds_assert(rate_itr != index.end(), "rates does not exists for symbol: '%'.", symbol);
 
         auto curr_now = time_get();
-        auto elapsed = (curr_now - itr->update).to_seconds();
+        auto elapsed = (curr_now - rate_itr->update).to_seconds();
         ds_assert(elapsed >= 0, "last_update for % is in the future", symbol);
         ds_print("\r\nelapsed: %", elapsed);
         auto orasettings = orasetting_get();
         ds_assert(elapsed < orasettings.rate_timeout, "USD rate is out of date");
 
         PRINT_FINISHED("getusdrate"_n)
-        return itr->rate;
+        return rate_itr->rate;
     }
 
 
@@ -86,12 +88,20 @@ namespace eosdt {
         orarate.rate = ds_asset((rates[l] + rates[r]).amount / 2, rates[l].symbol);
         ds_assert(orarate.rate.amount > 0, "rate % is equal zero.", orarate.rate);
         orarate.update = *std::min_element(times.begin(), times.end());
+        updtoldrates(orarate.update,  orarate.rate,  orarate.base);
     }
     void eosdtorclize::rate_set(const ds_symbol &token_symbol, const source_type &source, const price_type &price_type,
                                 const ds_string &data) {
         rate_set(source,price_type,parse_price(token_symbol, data.c_str()));
     }
+    void eosdtorclize::rate_set(const ds_symbol &token_symbol, const source_type &source, const price_type &price_type,
+                                const ds_symbol &base, const ds_string &data) {
+        rate_set(source,price_type,base,parse_price(token_symbol, data.c_str()));
+    }
     void eosdtorclize::rate_set(const source_type &source, const price_type &price_type, const ds_asset &data) {
+        rate_set(source, price_type, EOS_SYMBOL, data);
+    }
+    void eosdtorclize::rate_set(const source_type &source, const price_type &price_type, const ds_symbol &base, const ds_asset &data) {
         PRINT_STARTED("rateset"_n)
         ds_asset rate;
         switch (price_type) {
@@ -112,14 +122,17 @@ namespace eosdt {
                 ds_assert(false, "Unsupported price type: %", price_type_to_i(price_type));
         }
 
-        ds_print("\r\nparsed: %, setting rate: %", data, rate);
+        ds_print("\r\nparsed: %, setting rate: %, base: %, price_type: %", data, rate, base, price_type_to_i(price_type));
         if (rate.amount <= 0) {
             ds_print("\r\nrateset hasn't succeded");
             return;
         }
-
+        auto time = time_get();
+        ds_ulong id;
         auto set = [&](auto &row) {
-            row.update = time_get();
+            row.id = id;
+            row.update = time;
+            row.base = base;
             switch (source) {
                 case source_type::provablecb1a:
                     row.provablecb1a_price = rate;
@@ -140,11 +153,14 @@ namespace eosdt {
             set_median(rate_timeout, row);
         };
         orarates_table orarates(_self, _self.value);
-        auto rate_itr = orarates.find(data.symbol.raw());
-        if (rate_itr == orarates.end()) {
-            ds_print("\r\nemplace rate: %", rate);
+        auto index = orarates.template get_index<"ratebase"_n>();
+        auto rate_itr = index.find(compress_key(rate.symbol.code().raw(), base.code().raw()));
+        if (rate_itr == index.end()) {
+            id = orarates.available_primary_key();
+            ds_print("\r\nemplace rate: % base: %", rate, base);
             orarates.emplace(_self, set);
         } else {
+            id = rate_itr->id;
             ds_asset old_rate;
             switch (source) {
                 case source_type::provablecb1a:
@@ -160,10 +176,39 @@ namespace eosdt {
                     ds_assert(false, "Unsupported source: %", to_string(source));
             }
             ds_print("\r\nchange rate: % => %", old_rate, rate);
-            orarates.modify(rate_itr, _self, set);
+            index.modify(rate_itr, _self, set);
         }
-        on_rate_changed(rate_itr->update, rate);
+        on_rate_changed(time, rate, base);
         PRINT_FINISHED("rateset"_n)
     }
+
+    void eosdtorclize::updtoldrates(const ds_time &time, const ds_asset &data, const ds_symbol &base) {
+        PRINT_STARTED("updtoldrates"_n)
+        ds_asset rate;
+        if (base == EOS_SYMBOL) {
+            rate = data;
+        }
+        else if (data.symbol == EOS_SYMBOL) {
+            rate = ds_asset(pow(10.0, base.precision()) / to_ldouble(data), base);
+        }
+        else {
+            return;
+        }
+        auto set = [&](auto &row) {
+            row.update = time;
+            row.rate = rate;
+        };
+        orarates_old_table orarates(_self, _self.value);
+        auto itr = orarates.find(rate.symbol.raw());
+        if (itr == orarates.end()) {
+            ds_print("\r\nemplace old rate: %", rate);
+            orarates.emplace(_self, set);
+        } else {
+            ds_print("\r\nchange rate: % => %", itr->rate, rate);
+            orarates.modify(itr, _self, set);
+        }
+        PRINT_FINISHED("updtoldrates"_n)
+    }
+
 
 }

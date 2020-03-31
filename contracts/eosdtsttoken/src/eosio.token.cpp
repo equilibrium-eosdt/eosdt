@@ -54,6 +54,7 @@ namespace eosdt {
         auto existing = statstable.find(sym_name);
         check(existing != statstable.end(), "token with symbol does not exist, create token before issue");
         const auto &st = *existing;
+        check( to == issuer, "sttokens can only be issued to issuer account" );
 
         require_auth(issuer);
         check(quantity.is_valid(), "invalid quantity");
@@ -69,10 +70,6 @@ namespace eosdt {
         add_balance(issuer, quantity, issuer);
 
         issuer_issue(issuer, quantity);
-
-        if (to != issuer) {
-            SEND_INLINE_ACTION(*this, transfer, {issuer, "active"_n}, {issuer, to, quantity, memo});
-        }
     }
 
     void eosdtsttoken::transfer(ds_account from,

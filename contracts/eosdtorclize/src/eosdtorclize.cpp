@@ -2,6 +2,7 @@
 
 #include "settings.cpp"
 #include "subscribers.cpp"
+#include "queries.cpp"
 #include "rates.cpp"
 #include "orclize.cpp"
 #include "defer.cpp"

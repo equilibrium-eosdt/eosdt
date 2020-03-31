@@ -31,10 +31,12 @@ public:
 
     typedef std::map<const char *, parse_value, cmp_str> k_v_map;
     typedef std::pair<const char *, parse_value> k_v_pair;
+    typedef std::map <ds_account, ds_account> c_c_map;
 
 private:
     const char *_json;
-    k_v_map _key_values;
+    const k_v_map &_key_values;
+    const c_c_map &_cntract_types;
     parse_status _status;
     int _pos;
     int _key_pos;
@@ -52,9 +54,9 @@ private:
     char _out_key[500];
 
 public:
-    json_parser(const char *json, const k_v_map &key_values) {
+    json_parser(const char *json, const k_v_map &key_values, const c_c_map &cntract_types)
+            : _key_values(key_values), _cntract_types(cntract_types) {
         _json = json;
-        _key_values = key_values;
         _status = STATUS_ERR_NULL;
         _pos = 0;
         _key_pos = 0;
@@ -311,10 +313,23 @@ public:
 
 
     parse_value find_key() {
-        auto itr = _key_values.find(get_out_key());
+        auto key = get_out_key();
+        auto key_str = std::string(key);
+        auto dot_pos = key_str.find('.');
+        if (dot_pos != std::string::npos) {
+            auto ctr_name = key_str.substr(0, dot_pos);
+            ds_account ctr{ctr_name};
+            auto type_itr = _cntract_types.find(ctr);
+            if (type_itr != _cntract_types.end() && type_itr->second!=ctr) {
+                auto prop_name = key_str.substr(dot_pos);
+                key = (type_itr->second.to_string() + prop_name).c_str();
+            }
+        }
+        auto itr = _key_values.find(key);
         if (itr != _key_values.end()) {
             return itr->second;
         }
+        ds_print("\r\nkey: % did not found.", key);
         return VALUE_NONE;
     }
 
@@ -354,7 +369,7 @@ public:
                     s = parse_array();
                     break;
                 default:
-                    ds_print("\r\nparse key error position:%", _key_pos);
+                    ds_print("\r\nparse key error position:% value: %", _key_pos, v);
                     break;
             }
             if (!s) {
@@ -427,4 +442,27 @@ public:
     bool is_key_equals(const char *key) {
         return strlen(key) == _key_end - _key_pos && strncmp(_json + _key_pos, key, _key_end - _key_pos) == 0;
     }
+
+    bool is_key_equals(const char *ctr, const char *key) {
+        auto ctr_len = strlen(ctr);
+        auto key_len = strlen(key);
+        if (ctr_len + key_len != _key_end - _key_pos) {
+            return false;
+        }
+        if (strncmp(_json + _key_pos, ctr, ctr_len) != 0) {
+            return false;
+        }
+        return strncmp(_json + _key_pos + ctr_len, key, key_len) == 0;
+    }
+
+    bool is_key_equals_ctr(const char *ctr) {
+        auto ctr_len = strlen(ctr);
+        return ctr_len < _key_end - _key_pos && strncmp(_json + _key_pos, ctr, ctr_len) == 0;
+    }
+
+    bool is_key_equals_key(const std::size_t ctr_len,const char *key) {
+        auto key_len = strlen(key);
+        return ctr_len + key_len == _key_end - _key_pos && strncmp(_json + _key_pos + ctr_len, key, key_len) == 0;
+    }
+
 };

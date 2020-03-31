@@ -32,7 +32,77 @@ namespace eosdt{
             ds_uint unpaid_blocks;
             ds_ulong last_claim_time;
             uint16_t location;
+            eosio::binary_extension<eosio::block_signing_authority>  producer_authority;
             auto primary_key() const { return owner.value; }
+            double by_votes()const    { return is_active ? -total_votes : total_votes;  }
+            template<typename DataStream>
+            friend DataStream& operator << ( DataStream& ds, const sysproducer& t ) {
+                ds << t.owner
+                   << t.total_votes
+                   << t.producer_key
+                   << t.is_active
+                   << t.url
+                   << t.unpaid_blocks
+                   << t.last_claim_time
+                   << t.location;
+
+                if( !t.producer_authority.has_value() ) return ds;
+
+                return ds << t.producer_authority;
+            }
+
+            template<typename DataStream>
+            friend DataStream& operator >> ( DataStream& ds, sysproducer& t ) {
+                return ds >> t.owner
+                          >> t.total_votes
+                          >> t.producer_key
+                          >> t.is_active
+                          >> t.url
+                          >> t.unpaid_blocks
+                          >> t.last_claim_time
+                          >> t.location
+                          >> t.producer_authority;
+            }
+        };
+
+        struct sysglobal: eosio::blockchain_parameters {
+            uint64_t             max_ram_size;
+            uint64_t             total_ram_bytes_reserved;
+            int64_t              total_ram_stake;
+            eosio::block_timestamp      last_producer_schedule_update;
+            eosio::time_point           last_pervote_bucket_fill;
+            int64_t              pervote_bucket;
+            int64_t              perblock_bucket;
+            uint32_t             total_unpaid_blocks;
+            int64_t              total_activated_stake;
+            eosio::time_point           thresh_activated_stake_time;
+            uint16_t             last_producer_schedule_size;
+            double               total_producer_vote_weight;
+            eosio::block_timestamp      last_name_close;
+            uint64_t primary_key()const { return 0; }
+        };
+
+        struct sysglobal4 {
+            double   continuous_rate;
+            int64_t  inflation_pay_factor;
+            int64_t  votepay_factor;
+
+            uint64_t primary_key()const { return 0; }
+        };
+
+        struct sysvoter {
+            ds_account                owner;
+            ds_account                proxy;
+            std::vector<ds_account>   producers;
+            int64_t             staked;
+            double              last_vote_weight;
+            double              proxied_vote_weight;
+            bool                is_proxy;
+            uint32_t            flags1;
+            uint32_t            reserved2;
+            ds_asset        reserved3;
+
+            uint64_t primary_key()const { return owner.value; }
         };
 
         struct rexpool {
@@ -97,6 +167,26 @@ namespace eosdt{
             ds_ulong primary_key() const { return id; }
         };
 
+        static __uint128_t compress_key(const ds_ulong &left, const ds_ulong &right) {
+            return ((__uint128_t) left) << 64 | right;
+        }
+
+        struct orarate_old
+        {
+            ds_asset rate;
+            ds_time update;
+            ds_asset provablecb1a_price;
+            ds_time provablecb1a_update;
+            ds_asset delphioracle_price;
+            ds_time delphioracle_update;
+            ds_asset equilibriumdsp_price;
+            ds_time equilibriumdsp_update;
+            uint64_t
+            primary_key() const {
+                return rate.symbol.raw();
+            }
+        };
+
         struct orarate
         {
             ds_asset rate;
@@ -107,14 +197,18 @@ namespace eosdt{
             ds_time delphioracle_update;
             ds_asset equilibriumdsp_price;
             ds_time equilibriumdsp_update;
+            ds_ulong id;
+            ds_symbol base;
 
             uint64_t
             primary_key() const {
-                return rate.symbol.raw();
+                return id;
             }
+
+            __uint128_t by_rate_base() const { return compress_key(rate.symbol.code().raw(), base.code().raw()); }
         };
 
-        struct oraqueries
+        struct oraqueries_old
         {
             ds_symbol asset_symbol;
             ds_string query;
@@ -127,6 +221,26 @@ namespace eosdt{
             primary_key() const {
                 return asset_symbol.raw();
             }
+        };
+
+        struct oraqueries
+        {
+            ds_symbol asset_symbol;
+            ds_string query;
+            ds_int price_type;
+            ds_time query_updated_at;
+            ds_time query_executed_at;
+            ds_checksum checksumm;
+            ds_ulong id;
+            ds_account source_contract;
+            ds_symbol base;
+
+            uint64_t
+            primary_key() const {
+                return id;
+            }
+
+            __uint128_t by_asset_source() const { return compress_key(asset_symbol.code().raw(), source_contract.value^base.code().raw()); }
         };
 
         struct orasubscribe
@@ -158,15 +272,27 @@ namespace eosdt{
             double nut_discount;
             double profit_factor;
             ds_uint vote_period;
+            //Rex>>
             ds_uint stake_period;
             double reserve_ratio;
             double staking_weight;
             ds_account bpproxy_account;
+            //<<Rex
             ds_account governc_account;
             ds_asset referral_min_stake;
             double referral_ratio;
+            ds_account collateral_account;
+            ds_symbol collateral_token;
 
             ds_uint top_margincalls() const { return 3; }
+            ds_ulong primary_key() const { return setting_id; }
+        };
+
+        struct ctrsetting_time {
+            ds_ulong setting_id;
+            uint8_t global_lock;
+            ds_long time_shift;
+
             ds_ulong primary_key() const { return setting_id; }
         };
 
@@ -180,7 +306,15 @@ namespace eosdt{
             ds_time prev_vote;
             ds_time prev_stake;
             ds_asset eos_staked;
+            ds_ulong primary_key() const { return parameter_id; }
+        };
 
+        struct posparameter {
+            ds_ulong parameter_id;
+            double total_collateral;
+            ds_asset total_debt;
+            double stability_rate;
+            ds_time prev_date;
             ds_ulong primary_key() const { return parameter_id; }
         };
 
@@ -199,6 +333,18 @@ namespace eosdt{
             ds_account maker;
             ds_asset outstanding;
             ds_asset governance;
+            double collateral;
+
+            uint64_t
+            primary_key() const { return position_id; }
+            uint64_t
+            get_maker() const { return maker.value; }
+        };
+
+        struct posposition {
+            ds_ulong position_id;
+            ds_account maker;
+            ds_asset outstanding;
             double collateral;
 
             uint64_t
@@ -229,7 +375,7 @@ namespace eosdt{
             ds_ulong parameter_id;
             ds_asset surplus_debt;
             ds_asset bad_debt;
-            ds_asset eos_balance;
+            ds_asset collat_balance;
             ds_asset nut_collat_balance;
 
             ds_ulong primary_key() const { return parameter_id; }
@@ -238,18 +384,18 @@ namespace eosdt{
 
         struct liqsetting {
             ds_ulong setting_id;
-            ds_account eosdtcntract_account;
+            ds_account position_account;
             uint8_t global_unlock;
             ds_asset auction_price;
             double burn_rate;
             double gov_return_rate;
-
+            double set_aside_rate;
             ds_ulong primary_key() const { return setting_id; }
         };
 
         struct govsetting {
             ds_ulong setting_id;
-            ds_account eosdtcntract_account;
+            ds_account position_account;
             ds_asset min_proposal_weight;
             ds_uint freeze_period;
             double min_participation;
@@ -260,7 +406,7 @@ namespace eosdt{
             ds_asset min_vote_stake;
             ds_uint unstake_period;
             double reward_weight;
-            ds_asset min_reward;
+            double stake_reward;
 
             ds_ulong primary_key() const { return setting_id; }
         };
@@ -291,12 +437,6 @@ namespace eosdt{
                 return voter.value;
             }
         };
-
-
-
-        static __uint128_t compress_key(const ds_ulong &left, const ds_ulong &right) {
-            return ((__uint128_t) left) << 64 | right;
-        }
 
         struct govvote {
             ds_ulong id;
@@ -329,6 +469,7 @@ namespace eosdt{
         {
             ds_ulong param_id;
             ds_asset NUT_voting_balance;
+            ds_asset min_reward;
 
             uint64_t
             primary_key() const { return param_id; }
@@ -346,6 +487,14 @@ namespace eosdt{
 
             uint64_t
             primary_key() const { return bp_name.value; }
+        };
+
+        struct govposcntr
+        {
+            ds_account position_account;
+
+            uint64_t
+            primary_key() const { return position_account.value; }
         };
 
         struct votingstatus_item {

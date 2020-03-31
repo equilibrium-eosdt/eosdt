@@ -18,17 +18,21 @@ namespace eosdt {
             return *itr;
         }
 
+        ctrsetting ctrsetting_get(const ds_account &position_account) {
+            ctrsettings_table ctrsettings(position_account, position_account.value);
+            auto itr = ctrsettings.begin();
+            ds_assert(itr != ctrsettings.end(), "% %.", NEED_TO_SET_UP, "ctrsettings"_n);
+            return *itr;
+        }
+
         ctrsetting ctrsetting_get() {
-            auto ctr = (EOSDTCURRENT == EOSDTCNTRACT) ? _self : EOSDTCNTRACT;
+            auto ctr = (EOSDTCURRENT == EOSDTCNTRACT || EOSDTCURRENT == EOSDTPOSCONT) ? _self : EOSDTCNTRACT;
             if (EOSDTCURRENT == EOSDTLIQDATR) {
-                ctr = liqsetting_get().eosdtcntract_account;
+                ctr = liqsetting_get().position_account;
             } else if (EOSDTCURRENT == EOSDTLOCKUPP) {
                 ctr = locsetting_get().eosdtcntract_account;
             }
-            ctrsettings_table ctrsettings(ctr, ctr.value);
-            auto itr = ctrsettings.find(0);
-            ds_assert(itr != ctrsettings.end(), "% %.", NEED_TO_SET_UP, "ctrsettings"_n);
-            return *itr;
+            return ctrsetting_get(ctr);
         }
 
         liqsetting liqsetting_get() {
@@ -64,22 +68,30 @@ namespace eosdt {
             return *itr;
         }
 
-        auto ctr_by_symbol(const ds_symbol &symbol) {
+        auto ctr_by_symbol(const ds_symbol &symbol, const ctrsetting &setting) {
             if (symbol == STABLE_SYMBOL) {
-                return ctrsetting_get().sttoken_account;
+                return setting.sttoken_account;
             }
             if (symbol == UTILITY_SYMBOL) {
-                return ctrsetting_get().nutoken_account;
+                return setting.nutoken_account;
+            }
+            if (symbol == setting.collateral_token) {
+                return setting.collateral_account;
             }
             return EOSCTRACT;
         }
+
+        auto ctr_by_symbol(const ds_symbol &symbol) {
+            return ctr_by_symbol(symbol, ctrsetting_get());
+        }
+
 
         auto time_get() {
             auto time = ds_time(eosio::current_time_point().sec_since_epoch());
             return time;
         }
 
-        auto balance_get(const ds_account &account, const ds_symbol &symbol) {
+        auto balance_get_by_ctract(const ds_account &ctract, const ds_account &account, const ds_symbol &symbol) {
             sysaccounts_table sysaccounts(ctr_by_symbol(symbol), account.value);
             auto itr = sysaccounts.find(symbol.code().raw());
             if (itr == sysaccounts.end()) {
@@ -87,6 +99,10 @@ namespace eosdt {
             }
             ds_print("\r\n% balance: %", account, itr->balance);
             return itr->balance;
+        }
+
+        auto balance_get(const ds_account &account, const ds_symbol &symbol) {
+            return balance_get_by_ctract(ctr_by_symbol(symbol), account, symbol);
         }
 
         auto supply_get(const ds_symbol &symbol) {
@@ -165,29 +181,42 @@ namespace eosdt {
             return rex_to_eos(itr->rex_requested);
         }
 
-        auto orarate_get(const ds_symbol &token_symbol) {
+        auto orarate_get(const ds_symbol &token_symbol, const ds_symbol &base) {
             auto ora = (EOSDTCURRENT == EOSDTORCLIZE) ? _self : ctrsetting_get().oraclize_account;
             orarates_table orarates(ora, ora.value);
-            auto itr = orarates.find(token_symbol.raw());
-            ds_assert(itr != orarates.end(), "did not find token(%) for orarate.", token_symbol);
+            auto index = orarates.template get_index<"ratebase"_n>();
+            auto itr = index.find(compress_key(token_symbol.code().raw(), base.code().raw()));
+            ds_assert(itr != index.end(), "did not find token(%/%) for orarate.", token_symbol, base);
             ds_print("\r\nrate:%", itr->rate);
             return itr->rate;
         }
 
-        auto auction_price_get(const ds_symbol &token_symbol) {
+        auto orarate_get(const ds_symbol &token_symbol) {
+            return orarate_get(token_symbol, EOS_SYMBOL);
+        }
+
+        auto auction_price_get(const ds_symbol &token_symbol, const ds_symbol &base) {
             auto liqsettings = liqsetting_get();
             if (liqsettings.global_unlock && token_symbol == USD_SYMBOL) {
                 return liqsettings.auction_price;
             }
-            return orarate_get(token_symbol);
+            return orarate_get(token_symbol, base);
         }
 
-        auto liquidation_price_get(const ds_symbol &token_symbol) {
+        auto auction_price_get(const ds_symbol &token_symbol) {
+            return auction_price_get(token_symbol, EOS_SYMBOL);
+        }
+
+        auto liquidation_price_get(const ds_symbol &token_symbol, const ds_symbol &base) {
             auto ctrsettings = ctrsetting_get();
             if (ctrsettings.global_lock && token_symbol == USD_SYMBOL) {
                 return ctrsettings.liquidation_price;
             }
-            return orarate_get(token_symbol);
+            return orarate_get(token_symbol, base);
+        }
+
+        auto liquidation_price_get(const ds_symbol &token_symbol) {
+            return liquidation_price_get(token_symbol, EOS_SYMBOL);
         }
 
         void issue(const ds_account &to, const ds_asset &quantity, const ds_string &memo) {
@@ -214,10 +243,11 @@ namespace eosdt {
             }
         }
 
-        void trans(const ds_account &to, const ds_asset &quantity, const ds_string &memo) {
+
+        void trans_by_ctract(const ds_account &ctract, const ds_account &to, const ds_asset &quantity,
+                             const ds_string &memo) {
             PRINT_STARTED("trans")
-            auto ctract = ctr_by_symbol(quantity.symbol);
-            auto balance = balance_get(_self, quantity.symbol);
+            auto balance = balance_get_by_ctract(ctract, _self, quantity.symbol);
             ds_print("\r\ntrans: {from: %, to: %, quantity: % ,by: %, memo: '%', before: %, after: %}",
                      _self, to, quantity, ctract, memo, balance, balance - quantity);
             if (quantity.amount <= 0) {
@@ -230,6 +260,10 @@ namespace eosdt {
                     std::make_tuple(_self, to, quantity, memo)
             ).send();
             PRINT_FINISHED("trans")
+        }
+
+        void trans(const ds_account &to, const ds_asset &quantity, const ds_string &memo) {
+            trans_by_ctract(ctr_by_symbol(quantity.symbol), to, quantity, memo);
         }
 
         void receive(const ds_account &from, const ds_asset &quantity, const ds_string &memo) {

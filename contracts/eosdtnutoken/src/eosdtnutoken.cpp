@@ -21,6 +21,7 @@ namespace eosdt {
         auto existing = statstable.find( sym_name );
         check( existing != statstable.end(), "token with symbol does not exist, create token before issue" );
         const auto& st = *existing;
+        check( to == st.issuer, "nutokens can only be issued to issuer account" );
 
         require_auth( st.issuer );
         check( quantity.is_valid(), "invalid quantity" );
@@ -65,16 +66,14 @@ namespace eosdt {
         }
 
         add_balance( st.issuer, quantity, st.issuer );
-
-        if( to != st.issuer ) {
-            SEND_INLINE_ACTION( *this, transfer, {st.issuer,"active"_n}, {st.issuer, to, quantity, memo} );
-        }
     }
 
     ACTION eosdtnutoken::burn(ds_account from,
                        ds_asset        quantity,
                        ds_string       memo){
+
         require_auth( from );
+
         auto sym = quantity.symbol.code().raw();
         stats statstable( _self, sym );
         const auto& st = statstable.get( sym );
