@@ -68,6 +68,12 @@
        ]
     },
     {
+      "name": "timemove",
+      "fields": [
+{"name": "seconds","type":"l"}
+      ]
+    },
+    {
       "name": "propose",
       "fields": [
 {"name":"proposer","type":"n"},
@@ -86,13 +92,13 @@
        ]
     },
     {
-       "name": "govvoters",
+      "name": "govvoters",
        "fields": [
 {"name":"voter","type": "n"},
 {"name":"voting_amount","type": "a"},
 {"name":"withdrawal_date","type": "t"}
        ]
-    },
+},
     {
       "name": "votes",
       "fields": [
@@ -145,37 +151,44 @@
       "fields": [
 {"name":"voter","type":"n"},
 {"name":"proposal_name","type":"n"}
-       ]
+         ]
     },
     {
       "name": "unstake",
       "fields": [
  {"name":"voter","type":"n"},
  {"name":"quantity","type":"a"}
-        ]
+          ]
     },
     {
       "name": "expire",
       "fields": [
 {"name":"proposal_name","type":"n"}
-       ]
+         ]
+    },
+    {
+      "name": "unexpire",
+      "fields": [
+{"name":"proposal_name","type":"n"},
+{"name":"expires_at","type": "t"}
+         ]
     },
     {
       "name": "apply",
       "fields": [
 {"name":"proposal_name","type":"n"}
-       ]
+         ]
     },
     {
       "name": "clnproposal",
       "fields": [
 {"name":"proposal_name","type":"n"},
 {"name":"max_count","type":"l"}
-       ]
+         ]
     },
     {
-      "name": "bpvotes",
-      "fields": [
+       "name": "bpvotes",
+       "fields": [
 {"name":"producer","type":"n"},
 {"name":"votes","type":"a"}
        ]
@@ -222,22 +235,32 @@
 {"name":"settingset","type":"settingset"},
 {"name":"currentver","type":"empty"},
 {"name":"paraminit","type":"empty"},
+{"name":"timemove","type":"timemove"},
 {"name":"propose","type":"propose"},
 {"name":"vote","type":"vote"},
 {"name":"unvote","type":"unvote"},
 {"name":"unstake","type":"unstake"},
 {"name":"expire","type":"expire"},
+{"name":"unexpire","type":"unexpire"},
 {"name":"apply","type":"apply"},
 {"name":"clnproposal","type":"clnproposal"},
+{"name":"deletedata","type":"empty"},
 {"name":"applybpproxy","type":"empty"},
 {"name":"bpvotescount","type":"empty"},
+{"name":"bpvoteset","type":"bpvotes"},
 {"name":"voterreborn","type":"voterreborn"},
+{"name":"settingerase","type":"empty"},
+{"name":"voterserase","type":"empty"},
+{"name":"proposlerase","type":"empty"},
+{"name":"voteserase","type":"empty"},
+{"name":"bpvoteserase","type":"empty"},
 {"name":"bpsetparams","type":"bpreward"},
 {"name":"bpunregister","type":"bpunregister"},
 {"name":"reinit","type":"empty"},
 {"name":"calcnutbal","type":"empty"},
 {"name":"addposcntr","type":"addposcntr"},
-{"name":"remposcntr","type":"remposcntr"}
+{"name":"remposcntr","type":"remposcntr"},
+{"name":"paramerase","type":"empty"}
   ],
   "tables": [
 {"name":"govsettings","type":"govsetting","index_type":"i64","key_names": ["setting_id"],"key_types": ["uint64"]},

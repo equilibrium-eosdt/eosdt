@@ -88,11 +88,13 @@ namespace eosdt {
 
         auto time_get() {
             auto time = ds_time(eosio::current_time_point().sec_since_epoch());
+
             return time;
+
         }
 
         auto balance_get_by_ctract(const ds_account &ctract, const ds_account &account, const ds_symbol &symbol) {
-            sysaccounts_table sysaccounts(ctr_by_symbol(symbol), account.value);
+            sysaccounts_table sysaccounts(ctract, account.value);
             auto itr = sysaccounts.find(symbol.code().raw());
             if (itr == sysaccounts.end()) {
                 return ds_asset(0ll, symbol);
@@ -124,6 +126,7 @@ namespace eosdt {
             }
             return itr->max_supply - itr->supply;
         }
+
 
         auto rexpool_available() {
             rexpool_table rexpool(EOSSYSTEM, EOSSYSTEM.value);
@@ -181,18 +184,23 @@ namespace eosdt {
             return rex_to_eos(itr->rex_requested);
         }
 
-        auto orarate_get(const ds_symbol &token_symbol, const ds_symbol &base) {
-            auto ora = (EOSDTCURRENT == EOSDTORCLIZE) ? _self : ctrsetting_get().oraclize_account;
-            orarates_table orarates(ora, ora.value);
+        auto orarate_get(const ds_account &ora_account, const ds_symbol &token_symbol, const ds_symbol &base) {
+            orarates_table orarates(ora_account, ora_account.value);
             auto index = orarates.template get_index<"ratebase"_n>();
             auto itr = index.find(compress_key(token_symbol.code().raw(), base.code().raw()));
             ds_assert(itr != index.end(), "did not find token(%/%) for orarate.", token_symbol, base);
-            ds_print("\r\nrate:%", itr->rate);
-            return itr->rate;
+            return *itr;
         }
 
-        auto orarate_get(const ds_symbol &token_symbol) {
-            return orarate_get(token_symbol, EOS_SYMBOL);
+        auto orarate_get(const ds_symbol &token_symbol, const ds_symbol &base) {
+            auto ora = (EOSDTCURRENT == EOSDTORCLIZE) ? _self : ctrsetting_get().oraclize_account;
+            auto rate = orarate_get(ora, token_symbol, base);
+            ds_print("\r\nrate:%", rate.rate);
+            auto time = time_get();
+            ds_assert((time - rate.update).to_seconds() < RATES_OUTDATED_SECONDS,
+                          "%/% rate is outdated %, now %",
+                          token_symbol, base, rate.update, time);
+            return rate.rate;
         }
 
         auto auction_price_get(const ds_symbol &token_symbol, const ds_symbol &base) {
@@ -269,26 +277,17 @@ namespace eosdt {
         void receive(const ds_account &from, const ds_asset &quantity, const ds_string &memo) {
             auto ctract = ctr_by_symbol(quantity.symbol);
             auto balance = balance_get(_self, quantity.symbol);
-            ds_print("\r\nreceive: {from: %, to: %, quantity: % ,by: %, memo: '%', before: %, after: %}",
+            ds_print("\r\nreceive: {from: %, to: %, quantity: %, by: %, memo: '%', before: %, after: %}",
                      from, _self, quantity, ctract, memo, balance, balance + quantity);
             if (quantity.amount <= 0) {
                 return;
             }
-            if (quantity.symbol == NUT_SYMBOL) {
-                eosio::action(
-                        eosio::permission_level{_self, "active"_n},
-                        ctract,
-                        "receive"_n,
-                        std::make_tuple(from, _self, _self, quantity, memo)
-                ).send();
-            } else {
-                eosio::action(
-                        eosio::permission_level{_self, "active"_n},
-                        ctract,
-                        "receive"_n,
-                        std::make_tuple(from, _self, quantity, memo)
-                ).send();
-            }
+            eosio::action(
+                    eosio::permission_level{_self, "active"_n},
+                    ctract,
+                    "receive"_n,
+                    std::make_tuple(from, _self, quantity, memo)
+            ).send();
         }
 
         auto act_by_symbol(const ds_symbol &symbol) {
@@ -299,58 +298,21 @@ namespace eosdt {
             return "burn"_n;
         }
 
-        void burn(const ds_account &from, const ds_asset &quantity, const ds_string &memo) {
+        void burn(const ds_asset &quantity, const ds_string &memo) {
             auto ctract = ctr_by_symbol(quantity.symbol);
             auto action = act_by_symbol(quantity.symbol);
-            auto balance = balance_get(from, quantity.symbol);
+            auto balance = balance_get(_self, quantity.symbol);
             ds_print("\r\nburn: {from: %, quantity: % ,by: %, memo: '%', before: %,  after: %}",
-                     from, quantity, ctract, memo, balance, balance - quantity);
+                     _self, quantity, ctract, memo, balance, balance - quantity);
             if (quantity.amount <= 0) {
                 return;
             }
-            auto burn_memo = memo;
-            auto perm = eosio::permission_level{from, "active"_n};
-            if (quantity.symbol == EOSDT_SYMBOL) {
-                auto issuer = _self;
-                if (issuer == EOSDTLIQDATR) {
-                    issuer = EOSDTCNTRACT;
-                }
-                burn_memo = "via:" + issuer.to_string();
-                perm = eosio::permission_level{issuer, "active"_n};
-            }
+            auto perm = eosio::permission_level{_self, "active"_n};
             eosio::action(
                     perm,
                     ctract,
                     action,
-                    std::make_tuple(from, quantity, burn_memo)
-            ).send();
-        }
-
-        void retire_stable(const ds_account &issuer, const ds_account &from, const ds_asset &quantity,
-                           const ds_string &memo) {
-            auto ctract = ctr_by_symbol(quantity.symbol);
-            auto balance = balance_get(from, quantity.symbol);
-            ds_print("\r\nretirefrom: {issuer: %, from: %, quantity: %, by: %, memo: '%', before: %, after: %}",
-                     issuer, from, quantity, ctract, memo, balance, balance - quantity);
-            if (quantity.amount <= 0) {
-                return;
-            }
-
-            std::vector<ds_account> names = { issuer };
-            if (issuer != from) {
-                names.push_back(from);
-                std::sort(names.begin(), names.end());
-            }
-            std::vector<eosio::permission_level> perms;
-            for (auto n : names) {
-                perms.push_back(eosio::permission_level{n, "active"_n});
-            }
-
-            eosio::action(
-                    perms,
-                    ctract,
-                    "retirefrom"_n,
-                    std::make_tuple(issuer, from, quantity, memo)
+                    std::make_tuple(_self, quantity, memo)
             ).send();
         }
     };

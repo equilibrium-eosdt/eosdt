@@ -14,8 +14,8 @@
   ],
   "structs": [
     {
-       "name": "empty",
-       "fields": []
+      "name": "empty",
+      "fields": []
     },
     {
        "name":"orasettings",
@@ -46,6 +46,19 @@
 {"name":"queryId","type":"checksum256"},
 {"name":"result","type":"uint8[]"},
 {"name":"proof","type":"uint8[]"}
+       ]
+    },
+    {
+       "name":"orarates",
+       "fields":[
+{"name":"rate","type":"a"},
+{"name":"update","type": "t"},
+{"name":"provablecb1a_price","type":"a"},
+{"name":"provablecb1a_update","type": "t"},
+{"name":"delphioracle_price","type":"a"},
+{"name":"delphioracle_update","type": "t"},
+{"name":"equilibriumdsp_price","type":"a"},
+{"name":"equilibriumdsp_update","type": "t"}
        ]
     },
     {
@@ -92,30 +105,30 @@
        ]
     },
     {
-        "name": "refresh",
-        "fields": [
+       "name":"refresh",
+       "fields":[
 {"name":"symbol","type": "c"},
 {"name":"base","type": "c"}
-        ]
+       ]
     },
     {
-       "name": "queryadd",
-       "fields": [
+       "name":"queryadd",
+       "fields":[
 {"name":"symbol","type":"c"},
 {"name":"source_contract","type":"n"},
 {"name":"query","type":"s"},
 {"name":"price_type","type": "uint8"},
-{"name":"base","type": "c"},
+{"name":"base","type":"c"},
 {"name":"filter","type":"f"}
        ]
     },
     {
-        "name": "querydel",
-        "fields": [
+       "name":"querydel",
+       "fields":[
 {"name":"symbol","type":"c"},
 {"name":"source_contract","type":"n"},
 {"name":"base","type": "c"}
-        ]
+       ]
     },
     {
        "name":"unsubscribe",
@@ -199,6 +212,10 @@
 {"name":"settingset","type":"settingset"},
 {"name":"refreshutil","type":"refresh"},
 {"name":"callback","type":"callback"},
+{"name":"queriesdeltt","type":"empty"},
+{"name":"ratesdeltt","type":"empty"},
+{"name":"deletedata","type":"empty"},
+{"name":"settingerase","type":"empty"},
 {"name":"masterefresh","type":"refresh"},
 {"name":"stoprefresh","type":"refresh"},
 {"name":"startrefresh","type":"refresh"},
@@ -218,9 +235,16 @@
   ],
   "tables": [
 {"name":"orasettings","type":"orasettings","index_type":"i64","key_names":["id"],"key_types":["uint64"]},
+{"name":"orarates","type":"orarates","index_type":"i64","key_names":["rate"],"key_types":["uint64"]},
 {"name":"oraclerates","type":"oraclerates","index_type":"i64","key_names":["id"],"key_types":["uint64"]},
 {"name":"oraclqueries","type":"oraclqueries","index_type":"i64","key_names":["id"],"key_types":["uint64"]},
-{"name":"subscribers","type":"orasubscribe","index_type":"i64","key_names":["contract"],"key_types":["uint64"]}
+{"name":"subscribers","type":"orasubscribe","index_type":"i64","key_names":["contract"],"key_types":["uint64"]},
+{
+            "name": "oracleentry",
+            "type": "oracleentry",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        }
   ]
 }
-

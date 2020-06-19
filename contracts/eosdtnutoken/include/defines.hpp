@@ -1,14 +1,19 @@
 #pragma once
 
-#define EOSDTCURRENT "eosdtnutoken"_n
+
 #define NUT_SYMBOL_STR "NUT"
 #define NUT_SYMBOL_PAD_STR " " NUT_SYMBOL_STR
 #define NUT_SYMBOL_DECIMAL 9
 #define NUT_SYMBOL ds_symbol(NUT_SYMBOL_STR,NUT_SYMBOL_DECIMAL)
 #define NUT_SYMBOL_VALUE NUT_SYMBOL.value()
+#define SINGLETON_ID 0
 
 #ifndef ds_account
 #define ds_account eosio::name
+#endif
+
+#ifndef SAME_PAYER
+#define SAME_PAYER ds_account(0)
 #endif
 
 #ifndef ds_asset
@@ -26,8 +31,6 @@
 #ifndef ds_checksum
 #define ds_checksum eosio::checksum256
 #endif
-
-#define DELETEDATA
 
 #include <eosio/asset.hpp>
 #include <eosio/eosio.hpp>

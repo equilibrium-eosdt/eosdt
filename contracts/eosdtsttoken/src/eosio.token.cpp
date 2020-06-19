@@ -23,28 +23,6 @@ namespace eosdt {
     }
 
     void eosdtsttoken::issue(ds_account to, ds_asset quantity, ds_string memo) {
-        if (memo.find("via:") != 0) {
-            issuefrom(findissuer(), to, quantity, memo);
-        }else{
-            ds_account issuer(memo.c_str()+4);
-            tokissuers_table tokissuers(_self, _self.value);
-            auto itr = tokissuers.find(issuer.value);
-            eosio::check(itr != tokissuers.end() && itr->is_active, "issuer did not found or disabled.");
-            issuefrom(issuer, to, quantity, "issue by via");
-        }
-    }
-
-    void eosdtsttoken::issuefrom(ds_account issuer, ds_account to, ds_asset quantity, ds_string memo) {
-        eosio::print("\r\nissue{ issuer: ");
-        eosio::print(issuer);
-        eosio::print(", to: ");
-        eosio::print(to);
-        eosio::print(", quantity: ");
-        eosio::print(quantity);
-        eosio::print(", memo: '");
-        eosio::print(memo);
-        eosio::print("' }.");
-
         auto sym = quantity.symbol;
         check(sym.is_valid(), "invalid symbol name");
         check(memo.size() <= 256, "memo has more than 256 bytes");
@@ -54,22 +32,20 @@ namespace eosdt {
         auto existing = statstable.find(sym_name);
         check(existing != statstable.end(), "token with symbol does not exist, create token before issue");
         const auto &st = *existing;
-        check( to == issuer, "sttokens can only be issued to issuer account" );
 
-        require_auth(issuer);
+        require_auth(to);
         check(quantity.is_valid(), "invalid quantity");
         check(quantity.amount > 0, "must issue positive quantity");
 
         check(quantity.symbol == st.supply.symbol, "symbol precision mismatch");
         check(quantity.amount <= st.max_supply.amount - st.supply.amount, "quantity exceeds available supply");
 
-        statstable.modify(st, ds_account(0), [&](auto &s) {
+        statstable.modify(st, SAME_PAYER, [&](auto &s) {
             s.supply += quantity;
         });
-
-        add_balance(issuer, quantity, issuer);
-
-        issuer_issue(issuer, quantity);
+        
+        add_balance(to, quantity, to);
+        issuer_issue(to, quantity);
     }
 
     void eosdtsttoken::transfer(ds_account from,
@@ -79,7 +55,9 @@ namespace eosdt {
         check(from != to, "cannot transfer to self");
         require_auth(from);
 
-        check(is_account(to), "to account does not exist");
+        if (!is_account( to )) {
+            check(false, "to account does not exist");
+        }
         auto sym = quantity.symbol.code().raw();
         stats statstable(_self, sym);
         const auto &st = statstable.get(sym);
@@ -101,49 +79,29 @@ namespace eosdt {
     void eosdtsttoken::sub_balance(ds_account owner, ds_asset value) {
         accounts from_acnts(_self, owner.value);
         const auto &from = from_acnts.get(value.symbol.code().raw(), "no balance object found");
-
-        eosio::print("\r\nsub_balance(EOSDT) { owner: ");
-        eosio::print(owner);
-        eosio::print(", value: ");
-        eosio::print(value);
-        eosio::print(", balance: ");
-        eosio::print(from.balance);
-        eosio::print(" }.");
-
         check(from.balance.amount >= value.amount, "overdrawn EOSDT balance");
-
 
         if (from.balance.amount == value.amount) {
             from_acnts.erase(from);
         } else {
-            from_acnts.modify(from, ds_account(0), [&](auto &a) {
+            from_acnts.modify(from, SAME_PAYER, [&](auto &a) {
                 a.balance -= value;
             });
         }
     }
 
     void eosdtsttoken::add_balance(ds_account owner, ds_asset value, ds_account ram_payer) {
-        eosio::print("\r\nadd_balance(EOSDT) { owner: ");
-        eosio::print(owner);
-        eosio::print(", value: ");
-        eosio::print(value);
-        eosio::print(", balance: ");
-
         accounts to_acnts(_self, owner.value);
         auto to = to_acnts.find(value.symbol.code().raw());
         if (to == to_acnts.end()) {
             to_acnts.emplace(ram_payer, [&](auto &a) {
                 a.balance = value;
-                print(a.balance);
             });
         } else {
-            to_acnts.modify(to, ds_account(0), [&](auto &a) {
+            to_acnts.modify(to, SAME_PAYER, [&](auto &a) {
                 a.balance += value;
-                print(a.balance);
             });
         }
-
-        eosio::print(" }.");
     }
 
     ds_asset eosdtsttoken::get_supply(ds_symbol sym) const {

@@ -95,7 +95,7 @@ namespace eosdt {
             PRINT_FINISHED("updating"_n)
             return;
         }
-        if (memo.length()>0 && memo.find("bp_deposit:") == 0){
+        if (memo.length()>11 && memo.find("bp_deposit:") == 0){
             bpdeposit(memo.c_str() + 11,quantity);
         }
         else {

@@ -15,10 +15,11 @@ namespace eosdt {
 
 
 EOSIO_DISPATCH_EX(eosdt::eosdtorclize, (currentver)(getcurrent)
-        (settingset)(setlistdate)
+        (settingset)
         (transfer)(unsubscribe)(ratechanged)
         (queryadd)(querydel)(callback)
         (refreshutil)(masterefresh)
         (startrefresh)(stoprefresh)
         (delphirefres)
+        (xschedule)(xgeturi)(xorcclean)(xsignal)(orarecover)(liquidrefres)
 )

@@ -1,1 +1,16 @@
-#define DAPPSERVICES_CONTRACT "dappservices"_n
+
+
+
+
+
+#define DAPPSERVICESA_CONTRACT "dappservices"_n
+
+#ifdef LIQUIDX
+
+#define DAPPSERVICES_CONTRACT DAPPSERVICEX_CONTRACT_undefined
+
+#else
+
+#define DAPPSERVICES_CONTRACT DAPPSERVICESA_CONTRACT
+
+#endif

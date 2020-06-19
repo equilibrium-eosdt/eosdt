@@ -29,7 +29,9 @@ namespace eosdt {
         check(from != to, "cannot transfer to self");
         require_auth(from);
 
-        check(is_account(to), "to account does not exist");
+        if (!is_account( to )) {
+            check(false, "to account does not exist");
+        }
         auto sym = quantity.symbol.code().raw();
         stats statstable(_self, sym);
         const auto &st = statstable.get(sym);
@@ -46,6 +48,57 @@ namespace eosdt {
 
         sub_balance(from, quantity);
         add_balance(to, quantity, payer);
+    }
+
+    void eosdtnutoken::sub_balance(ds_account owner, ds_asset value) {
+        accounts from_acnts(_self, owner.value);
+
+        const auto &from = from_acnts.get(value.symbol.code().raw(), "no balance object found");
+        check(from.balance.amount >= value.amount, "overdrawn NUT balance");
+
+
+        if (from.balance.amount == value.amount) {
+            from_acnts.erase(from);
+        } else {
+            auto payer = has_auth(owner) ? owner : SAME_PAYER;
+            from_acnts.modify(from, payer, [&](auto &a) {
+                a.balance -= value;
+            });
+        }
+
+        nutparams_table nutparams(_self, _self.value);
+        check(nutparams.find(0) != nutparams.end(), "nutparams did not init");
+
+        nutlocks_table nutlocks(_self, _self.value);
+        auto lock_itr = nutlocks.find(owner.value);
+        if (value.symbol == NUT_SYMBOL) {
+            check(lock_itr == nutlocks.end(), "no transfers from locked accounts");
+        }
+    }
+
+    void eosdtnutoken::add_balance(ds_account owner, ds_asset value, ds_account ram_payer) {
+        accounts to_acnts(_self, owner.value);
+        auto to = to_acnts.find(value.symbol.code().raw());
+        if (to == to_acnts.end()) {
+            to_acnts.emplace(ram_payer, [&](auto &a) {
+                a.balance = value;
+            });
+        } else {
+            to_acnts.modify(to, SAME_PAYER, [&](auto &a) {
+                a.balance += value;
+            });
+        }
+
+        nutlocks_table nutlocks(_self, _self.value);
+        auto lock_itr = nutlocks.find(owner.value);
+        if (value.symbol == NUT_SYMBOL && lock_itr != nutlocks.end()) {
+            nutparams_table nutparams(_self, _self.value);
+            auto param_itr = nutparams.find(0);
+            eosio::check(param_itr != nutparams.end(), "nutparams did not init");
+            nutparams.modify(param_itr, SAME_PAYER, [&](auto &s) {
+                s.locked_supply += value;
+            });
+        }
     }
 
     ds_asset eosdtnutoken::get_supply(ds_symbol sym) const {

@@ -58,6 +58,12 @@ namespace eosdt {
             } else if (parser.is_key_equals_key(ctr_len, ".referral_ratio")) {
                 apply_settings.referral_ratio = parser.get_out_double();
                 settings_changed = true;
+            } else if (parser.is_key_equals_key(ctr_len, ".collateral_token")) {
+                apply_settings.collateral_token = parser.get_out_symbol();
+                settings_changed = true;
+            } else if (parser.is_key_equals_key(ctr_len, ".min_pos")) {
+                apply_settings.min_pos = parser.get_out_asset();
+                settings_changed = true;
             }
         }
         ds_assert(parse_status == json_parser::STATUS_END, "\r\nproposal_json is invalid, code %", parse_status);
@@ -88,7 +94,9 @@ namespace eosdt {
                                         apply_settings.referral_min_stake,
                                         apply_settings.referral_ratio,
                                         apply_settings.collateral_account,
-                                        apply_settings.collateral_token
+                                        apply_settings.collateral_token,
+                                        apply_settings.savings_account,
+                                        apply_settings.min_pos
                         )
                 ).send();
             } else {
@@ -106,10 +114,11 @@ namespace eosdt {
                                         apply_settings.liquidator_discount,
                                         apply_settings.nut_auct_ratio,
                                         apply_settings.nut_discount,
-                                        apply_settings.profit_factor,
                                         apply_settings.governc_account,
                                         apply_settings.collateral_account,
-                                        apply_settings.collateral_token
+                                        apply_settings.collateral_token,
+                                        apply_settings.savings_account,
+                                        apply_settings.min_pos
                         )
                 ).send();
             }
@@ -130,6 +139,22 @@ namespace eosdt {
                 apply_struct.position_account = parser.get_out_name();
                 change_exists = true;
             }
+            else if (parser.is_key_equals(liq_name,".burn_rate")) {
+                apply_struct.burn_rate = parser.get_out_double();
+                change_exists = true;
+            }
+            else if (parser.is_key_equals(liq_name,".gov_return_rate")) {
+                apply_struct.gov_return_rate = parser.get_out_double();
+                change_exists = true;
+            }
+            else if (parser.is_key_equals(liq_name,".set_aside_rate")) {
+                apply_struct.set_aside_rate = parser.get_out_double();
+                change_exists = true;
+            }
+            else if (parser.is_key_equals(liq_name,".savings_rate")) {
+                apply_struct.savings_rate = parser.get_out_double();
+                change_exists = true;
+            }
         }
         ds_assert(parse_status == json_parser::STATUS_END, "\r\nproposal_json is invalid, code %", parse_status);
         if (change_exists) {
@@ -137,7 +162,12 @@ namespace eosdt {
                     eosio::permission_level{liq_account, "active"_n},
                     liq_account,
                     "settingset"_n,
-                    std::make_tuple(apply_struct.position_account,apply_struct.burn_rate, apply_struct.gov_return_rate)
+                    std::make_tuple(
+                            apply_struct.position_account,
+                            apply_struct.burn_rate,
+                            apply_struct.gov_return_rate,
+                            apply_struct.set_aside_rate,
+                            apply_struct.savings_rate)
             ).send();
         }
     }
@@ -185,7 +215,8 @@ namespace eosdt {
                             apply_struct.query_timeout,
                             apply_struct.provablecb1a_interval,
                             apply_struct.delphioracle_interval,
-                            apply_struct.equilibriumdsp_interval)
+                            apply_struct.equilibriumdsp_interval,
+                            apply_struct.validity_timeout)
             ).send();
         }
 
@@ -235,8 +266,8 @@ namespace eosdt {
             } else if (parser.is_key_equals_key(ctr_len,".reward_weight")) {
                 apply_struct.unstake_period = parser.get_out_int();
                 change_exists = true;
-            } else if (parser.is_key_equals_key(ctr_len,".min_reward")) {
-                apply_struct.unstake_period = parser.get_out_int();
+            } else if (parser.is_key_equals_key(ctr_len,".stake_reward")) {
+                apply_struct.stake_reward = parser.get_out_double();
                 change_exists = true;
             }
         }
@@ -256,7 +287,8 @@ namespace eosdt {
                                     apply_struct.max_bp_votes,
                                     apply_struct.min_vote_stake,
                                     apply_struct.unstake_period,
-                                    apply_struct.reward_weight
+                                    apply_struct.reward_weight,
+                                    apply_struct.stake_reward
                     )
             ).send();
 

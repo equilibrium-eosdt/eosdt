@@ -8,10 +8,10 @@
 
 #ifdef LIQUIDX
 
-#define SVC_CONTRACT_NAME_ORACLE SVC_CONTRACT_NAME_ORACLE_undefined
+#define SVC_CONTRACT_NAME_ORACLE SVC_CONTRACT_NAME_ORACLE_undefined 
 
 #else
-#define SVC_CONTRACT_NAME_ORACLE oracleservic
+#define SVC_CONTRACT_NAME_ORACLE oracleservic 
 
 #endif
 
@@ -45,7 +45,7 @@ static void svc_oracle_orcclean(std::vector<char> uri) { \
 #ifdef ORACLE_DAPPSERVICE_ACTIONS_MORE
 #define ORACLE_DAPPSERVICE_ACTIONS \
   ORACLE_DAPPSERVICE_BASE_ACTIONS \
-  ORACLE_DAPPSERVICE_ACTIONS_MORE()
+  ORACLE_DAPPSERVICE_ACTIONS_MORE() 
 
 
 #else

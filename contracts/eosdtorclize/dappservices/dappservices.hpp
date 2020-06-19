@@ -27,14 +27,15 @@ using eosio::symbol_code;
 
 #include "dappservices.config.hpp"
 extern "C" {
-struct __attribute__((aligned (16))) capi_checksum256 { uint8_t hash[32]; };
+   struct __attribute__((aligned (16))) capi_checksum256 { uint8_t hash[32]; };
 
-__attribute__((eosio_wasm_import))
-void sha256( const char* data, uint32_t length, capi_checksum256* hash );
+   __attribute__((eosio_wasm_import))
+   void sha256( const char* data, uint32_t length, capi_checksum256* hash );
 
 }
 #define DAPPSERVICES_SYMBOL symbol(symbol_code("DAPP"), 4)
 #define DAPPSERVICES_QUOTA_SYMBOL symbol(symbol_code("QUOTA"), 4)
+#define DAPPSERVICES_QUOTA_COST 1
 #define EXPAND(...) __VA_ARGS__
 #define XSTR(x) #x
 #define STR(x) XSTR(x)
@@ -163,20 +164,6 @@ void sha256( const char* data, uint32_t length, capi_checksum256* hash );
   }                                                                            \
   SVC_ACTION_METHOD(aname, action_args)
 
-#define typeName(TYPE) #TYPE
-
-#ifndef USAGE_DEFINED
-#define USAGE_DEFINED
-struct usage_t {
-    asset quantity;
-    name provider;
-    name payer;
-    name service;
-    name package;
-    bool success = false;
-};
-#endif
-
 #define XSIGNAL_DAPPSERVICE_ACTION \
     SVC_ACTION_METHOD_NOC(signal,((name)(service))((name)(action))((name)(provider))((name)(package))((std::vector<char>)(signalRawData))){ \
         require_recipient(DAPPSERVICES_CONTRACT);  \
@@ -187,17 +174,6 @@ struct usage_t {
 
 #define BUILD_ACTIONS_SVC_HELPER(contract, names)                              \
   BOOST_PP_SEQ_FOR_EACH(_CONVERT_TO_ACTION_NAME, contract, names)
-#define STANDARD_USAGE_MODEL(signal)                                           \
-  MODEL_START(signal) {                                                        \
-    uint64_t cost_per_action;                                                  \
-    usage_t calc_usage(name payer, name currentProvider,                       \
-                       SIGNAL_NAME(signal) signalData) {                       \
-      asset quantity;                                                          \
-      quantity.amount = cost_per_action;                                       \
-      quantity.symbol = DAPPSERVICES_QUOTA_SYMBOL;                                     \
-      MODEL_RESULT(quantity);                                                  \
-    }                                                                          \
-  };
 
 #define EOSIO_DISPATCH_SVC_TRX(contract, methods)    \
   extern "C" {                                                                 \
@@ -231,262 +207,166 @@ struct usage_t {
   }                                                                            \
   }
 
+  TABLE account {
+    asset balance;
+    uint64_t primary_key() const { return balance.symbol.code().raw(); }
+  };
+
+  TABLE currency_stats {
+    asset supply;
+    asset max_supply;
+    name issuer;
+    uint64_t primary_key() const { return supply.symbol.code().raw(); }
+  };
+
+  TABLE currency_stats_ext {
+    asset staked;
+    double inflation_per_block;
+    uint64_t last_inflation_ts;
+    uint64_t primary_key() const { return staked.symbol.code().raw(); }
+  };
+
+  //START THIRD PARTY STAKING MODS
+  TABLE refundreq {
+    uint64_t id;
+    name account; //ADDED: account that was staked to
+    asset amount;
+    name provider;
+    name service;
+    uint64_t unstake_time;
+    uint64_t primary_key() const { return id; }
+    checksum256 by_symbol_service_provider() const {
+      return _by_symbol_service_provider(amount.symbol.code(), account, service,
+                                           provider);
+    }
+    static checksum256 _by_symbol_service_provider(symbol_code symbolCode,
+                                  name account, name service, name provider) {
+      return checksum256::make_from_word_sequence<uint64_t>(
+          symbolCode.raw(), account.value, service.value, provider.value);
+    }
+  };
 
 
+  //we will scope to the payer/thirdparty
+  TABLE staking {
+    uint64_t id;            //id to ensure uniqueness
 
+    name account;           //account that was staked to
+    asset balance;
+    name provider;
+    name service;
 
+    uint64_t primary_key() const { return id; }
 
+    checksum256 by_account_service_provider() const {
+      return _by_account_service_provider(account, service, provider);
+    }
+    static checksum256 _by_account_service_provider(name account,
+                                                name service, name provider) {
+      return checksum256::make_from_word_sequence<uint64_t>(
+          0ULL, account.value, service.value, provider.value);
+    }
+  };
+  //END THIRD PARTY STAKING MODS
 
-#define HANDLECASE_SIGNAL_TYPE(signal)                                         \
-  if (action == TONAME(signal)) {                                              \
-    _xsignal_provider<SIGNAL_NAME(signal)>(                                    \
-        action, provider,package,                                              \
-        eosio::unpack<SIGNAL_NAME(signal)>(signalRawData), dappserviceContract, payer);                    \
-    return;                                                                    \
-  }
+  TABLE package {
+    uint64_t id;
 
+    std::string api_endpoint;
+    std::string package_json_uri;
 
-TABLE account {
-        asset balance;
-        uint64_t primary_key() const { return balance.symbol.code().raw(); }
-};
+    name package_id;
+    name service;
+    name provider;
 
-TABLE currency_stats {
-        asset supply;
-        asset max_supply;
-        name issuer;
-        uint64_t primary_key() const { return supply.symbol.code().raw(); }
-};
+    asset quota;
+    uint32_t package_period;
 
-TABLE currency_stats_ext {
-        asset staked;
-        double inflation_per_block;
-        uint64_t last_inflation_ts;
-        uint64_t primary_key() const { return staked.symbol.code().raw(); }
-};
+    asset min_stake_quantity;
+    uint32_t min_unstake_period; // commitment
+    // uint32_t min_staking_period;
+    bool enabled;
 
-//START THIRD PARTY STAKING MODS
-TABLE refundreq {
-        uint64_t id;
-        name account; //ADDED: account that was staked to
-        asset amount;
-        name provider;
-        name service;
-        uint64_t unstake_time;
-        uint64_t primary_key() const { return id; }
-        checksum256 by_symbol_service_provider() const {
-            return _by_symbol_service_provider(amount.symbol.code(), account, service,
-                                               provider);
-        }
-        static checksum256 _by_symbol_service_provider(symbol_code symbolCode,
-        name account, name service, name provider) {
-            return checksum256::make_from_word_sequence<uint64_t>(
-                    symbolCode.raw(), account.value, service.value, provider.value);
-        }
-};
-
-
-//we will scope to the payer/thirdparty
-TABLE staking {
-        uint64_t id;            //id to ensure uniqueness
-
-        name account;           //account that was staked to
-        asset balance;
-        name provider;
-        name service;
-
-        uint64_t primary_key() const { return id; }
-
-        checksum256 by_account_service_provider() const {
-            return _by_account_service_provider(account, service, provider);
-        }
-        static checksum256 _by_account_service_provider(name account,
-        name service, name provider) {
-            return checksum256::make_from_word_sequence<uint64_t>(
-                    0ULL, account.value, service.value, provider.value);
-        }
-};
-//END THIRD PARTY STAKING MODS
-
-TABLE package {
-        uint64_t id;
-
-        std::string api_endpoint;
-        std::string package_json_uri;
-
-        name package_id;
-        name service;
-        name provider;
-
-        asset quota;
-        uint32_t package_period;
-
-        asset min_stake_quantity;
-        uint32_t min_unstake_period; // commitment
-        // uint32_t min_staking_period;
-        bool enabled;
-
-        uint64_t primary_key() const { return id; }
-        checksum256 by_package_service_provider() const {
-            return _by_package_service_provider(package_id, service, provider);
-        }
-        static checksum256 _by_package_service_provider(
+    uint64_t primary_key() const { return id; }
+    checksum256 by_package_service_provider() const {
+      return _by_package_service_provider(package_id, service, provider);
+    }
+    static checksum256 _by_package_service_provider(
         name package_id, name service, name provider) {
-            return checksum256::make_from_word_sequence<uint64_t>(
-                    0ULL, package_id.value, service.value, provider.value);
-        }
-};
+      return checksum256::make_from_word_sequence<uint64_t>(
+          0ULL, package_id.value, service.value, provider.value);
+    }
+  };
 
-TABLE reward {
-        asset balance;
-        uint64_t last_usage;
+  TABLE reward {
+    asset balance;
+    uint64_t last_usage;
 
-        asset total_staked;
-        uint64_t last_inflation_ts;
-        uint64_t primary_key() const { return DAPPSERVICES_SYMBOL.code().raw(); }
-};
+    asset total_staked;
+    uint64_t last_inflation_ts;
+    uint64_t primary_key() const { return DAPPSERVICES_SYMBOL.code().raw(); }
+  };
 
-TABLE accountext {
-        uint64_t id;
-        name account;
-        name service;
-        name provider;
-        asset quota;
-        asset balance;
-        uint64_t last_usage;
-        uint64_t last_reward;
-        name package;
-        name pending_package;
-        uint64_t package_started;
-        uint64_t package_end;
-        uint64_t primary_key() const { return id; }
-        checksum256 by_account_service_provider() const {
-            return _by_account_service_provider(account, service, provider);
-        }
-        uint128_t by_account_service() const {
-            return _by_account_service(account, service);
-        }
-        static uint128_t _by_account_service(name account, name service) {
-            return (uint128_t{account.value}<<64) | service.value;
-        }
-        static checksum256 _by_account_service_provider(name account, name service,
-        name provider) {
-            return checksum256::make_from_word_sequence<uint64_t>(
-                    0ULL, account.value, service.value, provider.value);
-        }
-};
+  TABLE accountext {
+    uint64_t id;
+    name account;
+    name service;
+    name provider;
+    asset quota;
+    asset balance;
+    uint64_t last_usage;
+    uint64_t last_reward;
+    name package;
+    name pending_package;
+    uint64_t package_started;
+    uint64_t package_end;
+    uint64_t primary_key() const { return id; }
+    checksum256 by_account_service_provider() const {
+      return _by_account_service_provider(account, service, provider);
+    }
+    uint128_t by_account_service() const {
+      return _by_account_service(account, service);
+    }
+    static uint128_t _by_account_service(name account, name service) {
+      return (uint128_t{account.value}<<64) | service.value;
+    }
+    static checksum256 _by_account_service_provider(name account, name service,
+                                                 name provider) {
+      return checksum256::make_from_word_sequence<uint64_t>(
+          0ULL, account.value, service.value, provider.value);
+    }
+  };
 
 //MOVED TYPE DEFS TO CLASS
 
 typedef eosio::multi_index<
-        "accountext"_n, accountext,
-        indexed_by<"byprov"_n,
-                const_mem_fun<accountext, checksum256,
-                &accountext::by_account_service_provider>>,
-indexed_by<"byext"_n,
-        const_mem_fun<accountext, uint128_t,
-                &accountext::by_account_service>>
->
-accountexts_t;
+      "accountext"_n, accountext,
+      indexed_by<"byprov"_n,
+                 const_mem_fun<accountext, checksum256,
+                               &accountext::by_account_service_provider>>,
+      indexed_by<"byext"_n,
+                 const_mem_fun<accountext, uint128_t,
+                               &accountext::by_account_service>>
+                               >
+      accountexts_t;
 
 
 
 std::vector<name> getProvidersForAccount(name account, name service) {
-    // get from service account
-    accountexts_t accountexts(DAPPSERVICES_CONTRACT, DAPPSERVICES_SYMBOL.code().raw());
-    auto idxKey =
-            accountext::_by_account_service(account, service);
-    auto cidx = accountexts.get_index<"byext"_n>();
-    auto acct = cidx.find(idxKey);
-    std::vector<name> result;
-    while(acct != cidx.end()){
-        if(acct->account != account || acct->service != service) return result;
-        result.push_back(acct->provider);
-        acct++;
-    }
-    return result;
+  // get from service account
+  accountexts_t accountexts(DAPPSERVICES_CONTRACT, DAPPSERVICES_SYMBOL.code().raw());
+  auto idxKey =
+    accountext::_by_account_service(account, service);
+  auto cidx = accountexts.get_index<"byext"_n>();
+  auto acct = cidx.find(idxKey);
+  std::vector<name> result;
+  while(acct != cidx.end()){
+    if(acct->account != account || acct->service != service) return result;
+    result.push_back(acct->provider);
+    acct++;
+  }
+  return result;
 }
-
-void dispatchUsage(usage_t usage_report, name servicesContract) {
-    action(permission_level{name(current_receiver()), "active"_n},
-           servicesContract, "usage"_n, std::make_tuple(usage_report))
-            .send();
-}
-
-
-#define DAPPSERVICE_PROVIDER_ACTIONS                                               \
-  template <typename T>                                                        \
-  void _xsignal_provider(name actionName, name provider,name package, T signalData, name servicesContract, name payer) {       \
-    std::vector<name> providers;                                               \
-    if (provider != ""_n)                                                      \
-      providers.push_back(provider);                                           \
-    else                                                                       \
-      providers = getProvidersForAccount(payer, name(current_receiver()));     \
-    if(servicesContract == DAPPSERVICES_CONTRACT)                             \
-      require_auth(payer);                                                       \
-    else                                                                        \
-      require_auth(servicesContract);                                                       \
-    auto currentProvider = provider;                                            \
-      providermodels_t providermodels(_self, currentProvider.value);           \
-      auto providerModel = providermodels.find(package.value);      \
-      eosio::check (providerModel != providermodels.end(), "package not found");\
-      auto model = providerModel->model;                                        \
-      auto usageResult = model.calc_usage(payer, currentProvider, signalData); \
-      usageResult.provider = currentProvider;                                  \
-      usageResult.payer = payer;                                               \
-      usageResult.package = package;                                               \
-      usageResult.service = name(current_receiver());                        \
-      dispatchUsage(usageResult, servicesContract);                                              \
-  }
-
-#define DAPPSERVICE_PROVIDER_BASIC_ACTIONS                                       \
- [[eosio::action]] void regprovider(name provider, providermdl model) {                       \
-    require_auth(provider);                                                    \
-    providermodels_t providermodels(_self, provider.value);                    \
-    auto providerModel = providermodels.find(model.package_id.value);                       \
-    eosio::check(providerModel == providermodels.end(), "already exists");\
-    providermodels.emplace(provider, [&](auto &s) {\
-          s.model = model.model;\
-          s.package_id = model.package_id;\
-    });\
-  }
-
-#define EOSIO_DISPATCH_SVC_PROVIDER(contract)                                  \
-  extern "C" {                                                                 \
-  void apply(uint64_t receiver, uint64_t code, uint64_t action) { \
-    if (code == receiver) {                                                    \
-      switch (action) { EOSIO_DISPATCH_HELPER(contract, (regprovider)(ACTION_NAME(signalx))) }       \
-    } else                                                                     \
-      switch (action) {                                                        \
-        EOSIO_DISPATCH_HELPER(contract, (ACTION_NAME(signal)))                 \
-      }                                                                        \
-    eosio_exit(0);                                                             \
-  }                                                                            \
-  }
-
-#define HANDLE_MODEL_SIGNAL_FIELD(signal)                                      \
-  signal##_model_t signal##_model_field;                                       \
-  usage_t calc_usage(name payer, name provider,                                \
-                     SIGNAL_NAME(signal) signalData) {                         \
-    return signal##_model_field.calc_usage(payer, provider, signalData);       \
-  }
-
-#define MODEL_RESULT(quantity)                                                 \
-  {                                                                            \
-    usage_t usage_result;                                                      \
-    usage_result.quantity = quantity;                                          \
-    return usage_result;                                                       \
-  }                                                                            \
-  while (0)
-
-#define MODEL_START(signal) struct signal##_model_t
-
-#define HANDLE_MODEL_SIGNAL_FIELD2(signal)                                      \
-  signal##_model_t signal##_model_field;
-#define STANDARD_USAGE_MODEL2(signal)                                           \
-  MODEL_START(signal) {                                                        \
-    uint64_t cost_per_action;                                                  \
-  };
 
 #define CONTRACT_START() \
 CONTRACT CONTRACT_NAME() : public eosio::contract { \

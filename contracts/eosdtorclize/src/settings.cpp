@@ -12,7 +12,8 @@ namespace eosdt {
 
     void eosdtorclize::settingset(const ds_int &rate_timeout, const ds_int &query_timeout,
                                   const ds_int &provablecb1a_interval,
-                                  const ds_int &delphioracle_interval, const ds_int &equilibriumdsp_interval) {
+                                  const ds_int &delphioracle_interval, const ds_int &equilibriumdsp_interval,
+                                  const ds_int &validity_timeout ) {
         PRINT_STARTED("settingset"_n)
         require_auth(_self);
         struct orasetting_del {
@@ -33,6 +34,7 @@ namespace eosdt {
             row.provablecb1a_interval = provablecb1a_interval;
             row.delphioracle_interval = delphioracle_interval;
             row.equilibriumdsp_interval = equilibriumdsp_interval;
+            row.validity_timeout = validity_timeout;
         };
         if (itr == orasettings.end()) {
             orasettings.emplace(_self, set);
@@ -40,22 +42,6 @@ namespace eosdt {
             orasettings.modify(itr, ds_account(0), set);
         }
         PRINT_FINISHED("settingset"_n)
-    }
-
-    void eosdtorclize::setlistdate(const ds_time &utility_listing_date) {
-        PRINT_STARTED("setlistdate"_n)
-        require_auth(_self);
-        orasettings_table orasettings(_self, _self.value);
-        auto itr = orasettings.find(0);
-        ds_assert(itr != orasettings.end(), "orasettings %.", DOES_NOT_EXIST);
-        ds_assert(itr->utility_listing_date.utc_seconds == 0 || time_get() < itr->utility_listing_date,
-                  "cant modify listing date");
-
-        orasettings.modify(itr, ds_account(0), [&](auto &row) {
-            row.utility_listing_date = utility_listing_date;
-        });
-
-        PRINT_FINISHED("setlistdate"_n)
     }
 
 }

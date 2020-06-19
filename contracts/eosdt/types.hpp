@@ -157,12 +157,12 @@ namespace eosdt{
         struct orasettings
         {
             ds_ulong id;
-            ds_time utility_listing_date;
             ds_int rate_timeout;
             ds_int query_timeout;
             ds_int provablecb1a_interval;
             ds_int delphioracle_interval;
             ds_int equilibriumdsp_interval;
+            ds_int validity_timeout;
 
             ds_ulong primary_key() const { return id; }
         };
@@ -170,22 +170,6 @@ namespace eosdt{
         static __uint128_t compress_key(const ds_ulong &left, const ds_ulong &right) {
             return ((__uint128_t) left) << 64 | right;
         }
-
-        struct orarate_old
-        {
-            ds_asset rate;
-            ds_time update;
-            ds_asset provablecb1a_price;
-            ds_time provablecb1a_update;
-            ds_asset delphioracle_price;
-            ds_time delphioracle_update;
-            ds_asset equilibriumdsp_price;
-            ds_time equilibriumdsp_update;
-            uint64_t
-            primary_key() const {
-                return rate.symbol.raw();
-            }
-        };
 
         struct orarate
         {
@@ -208,21 +192,6 @@ namespace eosdt{
             __uint128_t by_rate_base() const { return compress_key(rate.symbol.code().raw(), base.code().raw()); }
         };
 
-        struct oraqueries_old
-        {
-            ds_symbol asset_symbol;
-            ds_string query;
-            ds_int price_type;
-            ds_time query_updated_at;
-            ds_time query_executed_at;
-            ds_checksum checksumm;
-
-            uint64_t
-            primary_key() const {
-                return asset_symbol.raw();
-            }
-        };
-
         struct oraqueries
         {
             ds_symbol asset_symbol;
@@ -234,6 +203,7 @@ namespace eosdt{
             ds_ulong id;
             ds_account source_contract;
             ds_symbol base;
+            double filter;
 
             uint64_t
             primary_key() const {
@@ -250,8 +220,16 @@ namespace eosdt{
             ds_uint callcount;
             ds_time lastcall;
             ds_time withdrawal_date;
+            ds_ulong id;
+            ds_symbol asset_symbol;
+            ds_symbol base;
 
-            ds_ulong primary_key() const { return contract.value; }
+            uint64_t
+            primary_key() const {
+                return id;
+            }
+
+            __uint128_t by_asset_contract() const { return compress_key(asset_symbol.code().raw(), contract.value^base.code().raw()); }
         };
 
         struct ctrsetting {
@@ -283,6 +261,8 @@ namespace eosdt{
             double referral_ratio;
             ds_account collateral_account;
             ds_symbol collateral_token;
+            ds_account savings_account;
+            ds_asset min_pos;
 
             ds_uint top_margincalls() const { return 3; }
             ds_ulong primary_key() const { return setting_id; }
@@ -390,6 +370,7 @@ namespace eosdt{
             double burn_rate;
             double gov_return_rate;
             double set_aside_rate;
+            double savings_rate;
             ds_ulong primary_key() const { return setting_id; }
         };
 
@@ -600,5 +581,34 @@ namespace eosdt{
 
             ds_ulong primary_key() const { return voter.value; }
         };
+
+    struct savsetting
+    {
+        ds_ulong setting_id;
+        ds_account sttoken_account;
+        ds_asset min_deposit;
+
+        ds_ulong primary_key() const { return setting_id; }
+    };
+
+    struct savparam
+    {
+        ds_ulong param_id;
+        ds_asset total_discounted_balance;
+
+        uint64_t
+        primary_key() const { return param_id; }
+    };
+
+    struct savposition {
+        ds_ulong position_id;
+        ds_account owner;
+        ds_asset balance;
+
+        uint64_t
+        primary_key() const { return position_id; }
+        uint64_t
+        get_owner() const { return owner.value; }
+    };
 
 }

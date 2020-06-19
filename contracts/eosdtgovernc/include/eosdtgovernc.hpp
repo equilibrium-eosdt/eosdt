@@ -56,8 +56,6 @@ namespace eosdt {
 
         void expire(const ds_account &proposal_name);
 
-        void bpregister(const ds_account &bp_name, const ds_asset &reward_amount);
-
         void bpsetparams(const ds_account &bp_name, const ds_asset &reward_amount);
 
         void bpunregister(const ds_account &bp_name);
@@ -68,6 +66,8 @@ namespace eosdt {
 
     private:
         ds_asset voting_amount_get(const ds_account &owner, const ds_symbol &sym) const;
+
+        auto fill_property_map() const;
 
         auto get_json_parser(const char *json, const std::map <ds_account, ds_account> &cntract_types) const;
 
@@ -110,7 +110,7 @@ namespace eosdt {
 
         void bpvoteerase(const ds_account &voter);
 
-        void bpdeposit(const ds_string &bp_name, const ds_asset &quantity);
+        void bpdeposit(const ds_string &producer_name, const ds_asset &quantity);
 
         void dobilling();
 

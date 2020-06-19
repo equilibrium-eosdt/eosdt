@@ -21,6 +21,7 @@ public:
         VALUE_ASSET = 5,
         VALUE_DATETIME = 6,
         VALUE_ARRAY = 7,
+        VALUE_SYMBOL = 8,
     };
 
     struct cmp_str {
@@ -35,8 +36,8 @@ public:
 
 private:
     const char *_json;
-    const k_v_map &_key_values;
-    const c_c_map &_cntract_types;
+    const k_v_map _key_values;
+    const c_c_map _cntract_types;
     parse_status _status;
     int _pos;
     int _key_pos;
@@ -52,6 +53,7 @@ private:
     ds_account _out_name;
     ds_time _out_time;
     char _out_key[500];
+    ds_symbol _out_symbol;
 
 public:
     json_parser(const char *json, const k_v_map &key_values, const c_c_map &cntract_types)
@@ -280,6 +282,25 @@ public:
         }
     }
 
+    bool parse_symbol() {
+        _value_pos = _pos;
+        if (!parse_int()) {
+            return false;
+        }
+        if (!skip_char(',')) {
+            return false;
+        }
+        char symbol[8];
+        char *c = symbol;
+        while (skip_letter()) {
+            *c++ = _json[_pos - 1];
+        }
+        *c = '\0';
+        _out_symbol = ds_symbol(symbol, _out_int);
+        _value_end = _pos;
+        return true;
+    }
+
     bool parse_asset() {
         _value_pos = _pos;
         if (!parse_double()) {
@@ -329,7 +350,7 @@ public:
         if (itr != _key_values.end()) {
             return itr->second;
         }
-        ds_print("\r\nkey: % did not found.", key);
+        ds_print("\r\nkey: % is not found.", key);
         return VALUE_NONE;
     }
 
@@ -368,6 +389,8 @@ public:
                 case VALUE_ARRAY:
                     s = parse_array();
                     break;
+                case VALUE_SYMBOL:
+                    s = parse_symbol();
                 default:
                     ds_print("\r\nparse key error position:% value: %", _key_pos, v);
                     break;
@@ -430,6 +453,10 @@ public:
 
     ds_time get_out_time() {
         return _out_time;
+    }
+
+    ds_symbol get_out_symbol() {
+        return _out_symbol;
     }
 
     const char *get_out_key() {

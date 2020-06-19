@@ -10,15 +10,6 @@ static bool ne(double l, double r) {
     return l < r || r < l;
 }
 
-uint64_t to_uint64(char const *s) {
-    uint64_t result = 0;
-    while (*s >= '0' && *s <= '9') {
-        result = result * 10 + (uint64_t)(*s - '0');
-        ++s;
-    }
-    return result;
-}
-
 constexpr double to_double(const ds_asset &asset) {
     auto result = 1;
     for (ds_ulong i = 0; i < asset.symbol.precision(); i++)result *= 10;
@@ -392,7 +383,6 @@ template<typename t0 = ds_nullptr, typename t1 = ds_nullptr, typename t2 = ds_nu
 static void ds_print(const char *f, t0 v0 = nullptr, t1 v1 = nullptr, t2 v2 = nullptr,
                      t3 v3 = nullptr, t4 v4 = nullptr, t5 v5 = nullptr,
                      t6 v6 = nullptr, t7 v7 = nullptr, t8 v8 = nullptr, t9 v9 = nullptr) {
-
     print_f(write_format_string(f, v0, v1, v2, v3, v4, v5, v6, v7, v8, v9));
 }
 
@@ -418,29 +408,26 @@ ds_asset op_mul_div(const ds_asset &quantity, const long double mul, const long 
     return ds_asset(int64_t(((long double) quantity.amount) * mul / div), quantity.symbol);
 }
 
-static ds_asset parse_price(const ds_symbol &symbol, const char *data) {
+static ds_asset try_parse_price(const ds_symbol &symbol, const char *data) {
     int64_t mint = 0;
     bool decimals = false;
     int32_t digits = 0;
-    while (*data && *data != ',' && *data != '}' && *data != ' ') {
-        if (*data > 47 && *data < 58) {
-            if (decimals) {
-                if (digits++ == (int32_t) symbol.precision()) {
-                    break;
-                }
-            }
-            mint = (int64_t) * data - 48L + mint * 10;
-        } else if (*data == 46 && !decimals) {
+    while (*data && *data != ' ') {
+        if (*data >= '0' && *data <= '9') {
+            if (decimals) digits++;
+            mint = (int64_t)(*data) - (int64_t)('0') + mint * 10;
+        } else if (*data == '.' && !decimals) {
             decimals = true;
         } else {
-            return ds_asset(0, symbol);
+            ds_assert(false, "wrong price format.");
         }
         data++;
     }
     auto diff = (int32_t) symbol.precision() - digits;
-    if (diff > 0) {
-        for (int32_t i = 0; i < diff; i++)mint *= 10;
+    if (diff < 0) {
+        ds_assert(false, "wrong price decimals.");
     }
+    for (int32_t i = 0; i < diff; i++) mint *= 10;
     return ds_asset(mint, symbol);
 }
 

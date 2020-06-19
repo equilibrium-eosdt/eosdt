@@ -32,6 +32,8 @@ namespace eosdt {
                   min_vote_stake, NUT_SYMBOL);
         ds_assert(reward_weight>=0, "wrong reward_weight value: % expected more or equal zero.", reward_weight);
         ds_assert(stake_reward >= 0.0 && stake_reward <= 1.0, "wrong stake_reward value: % expected in [0, 1].", stake_reward);
+        ds_assert(is_account(position_account), "% '%' % %.", "position_account",
+                  position_account, DOES_NOT_EXIST, AS_AN_ACCOUNT);
 
         const auto set = [&](auto &row) {
             row.setting_id = 0;

@@ -36,9 +36,9 @@ namespace eosdt {
             auto to_send = ds_asset(
                     pow(10.0, EOS_SYMBOL_DECIMAL) *
                     (to_double(liqparameter->bad_debt) / to_double(ctrsettings.liquidation_price)),
-                    EOS_SYMBOL) - liqparameter->eos_balance;
-            ds_print("\r\nto_send(%) = bad_debt(%)/liquidation_price(%) - eos_balance(%).",
-                     to_send, liqparameter->bad_debt, ctrsettings.liquidation_price, liqparameter->eos_balance);
+                    EOS_SYMBOL) - liqparameter->collat_balance;
+            ds_print("\r\nto_send(%) = bad_debt(%)/liquidation_price(%) - collat_balance(%).",
+                     to_send, liqparameter->bad_debt, ctrsettings.liquidation_price, liqparameter->collat_balance);
             need_send = liqparameter->bad_debt.amount > 0ll && to_send.amount > 0ll;
         }
         ds_print("\r\nsettlement(%) global_lock(%) global_unlock(%) need_send(%).",
@@ -95,7 +95,7 @@ namespace eosdt {
         respositions_table respositions(_self, _self.value);
         auto index = respositions.get_index<"depositor"_n>();
         auto itr = index.find(depositor.value);
-        ds_assert(itr != index.end(),"Position does not exists for depositor: %.",depositor);
+        ds_assert(itr != index.end(),"Position does not exist for depositor: %.",depositor);
         auto time = time_get();
         if(itr->withdrawal_date == ds_time(0))
         {
@@ -139,10 +139,10 @@ namespace eosdt {
         eosio::multi_index<"parameters"_n, liqparameter> liqparameters_tbl(liquidator_account, liquidator_account.value);
         auto liqparameters = liqparameters_tbl.require_find(0);
         auto to_send = ds_asset(liqparameters->bad_debt.amount/ctrsettings->liquidation_price.amount/
-                                (ds_ulong)pow(10, (ds_uint)(STABLE_SYMBOL_DECIMAL - USD_SYMBOL_DECIMAL - EOS_SYMBOL_DECIMAL)),EOS_SYMBOL) - liqparameters->eos_balance;
-        ds_print("\r\nto_send(%) = bad_debt(%)/liquidation_price(%) - eos_balance(%).",
+                                (ds_ulong)pow(10, (ds_uint)(STABLE_SYMBOL_DECIMAL - USD_SYMBOL_DECIMAL - EOS_SYMBOL_DECIMAL)),EOS_SYMBOL) - liqparameters->collat_balance;
+        ds_print("\r\nto_send(%) = bad_debt(%)/liquidation_price(%) - collat_balance(%).",
                  to_send,
-                 liqparameters->bad_debt, ctrsettings->liquidation_price, liqparameters->eos_balance);
+                 liqparameters->bad_debt, ctrsettings->liquidation_price, liqparameters->collat_balance);
         auto balance = balance_get(_self, EOS_SYMBOL);
         if (to_send.amount > balance.amount) {
             to_send.amount = balance.amount;

@@ -8,35 +8,37 @@
 using std::vector;
 using namespace eosio;
 
-const checksum256 hashData(vector<char> data){
-    auto buffer = data;
-    char* c = (char*) malloc(buffer.size()+1);
-    memcpy(c, buffer.data(), buffer.size());
-    c[buffer.size()] = 0;
-    capi_checksum256 *hash_val = (capi_checksum256 *) malloc(32);
-    sha256(c, buffer.size(), hash_val);
+const checksum256 hashData(vector<char> data){ 
+    auto buffer = data; 
+    char* c = (char*) malloc(buffer.size()+1); 
+    memcpy(c, buffer.data(), buffer.size()); 
+    c[buffer.size()] = 0; 
+    capi_checksum256 *hash_val = (capi_checksum256 *) malloc(32); 
+    sha256(c, buffer.size(), hash_val); 
     char * placeholder = (char*) malloc(32);
     memcpy(placeholder , hash_val, 32 );
-    std::vector<char> hash_ret = std::vector<char>(placeholder,placeholder + 32);
+    std::vector<char> hash_ret = std::vector<char>(placeholder,placeholder + 32); 
     uint64_t * p64 = (uint64_t*) malloc(32);
     memcpy(p64 , hash_ret.data(), 32 );
     return checksum256::make_from_word_sequence<uint64_t>(p64[0], p64[1], p64[2], p64[3]);
-}
+} 
 
 struct provider_result {
     std::vector<char> result;
     name provider;
 };
-TABLE oracleentry {
-        uint64_t                         id;
-        std::vector<char>                uri;
-        std::vector<provider_result>     results;
-        checksum256 hash_key() const { return hashData(uri); }
-        uint64_t primary_key()const { return id; }
-};
+TABLE oracleentry {  
+   uint64_t                         id; 
+   std::vector<char>                uri;
+   std::vector<provider_result>     results;
+   checksum256 hash_key() const { return hashData(uri); }  
+   uint64_t primary_key()const { return id; }  
+};  
 
-typedef eosio::multi_index<"oracleentry"_n, oracleentry, indexed_by<"byhash"_n, const_mem_fun<oracleentry, checksum256, &oracleentry::hash_key>>> oracleentries_t;
+typedef eosio::multi_index<"oracleentry"_n, oracleentry, indexed_by<"byhash"_n, const_mem_fun<oracleentry, checksum256, &oracleentry::hash_key>>> oracleentries_t; 
 
+// empty definition
+#define ORACLE_HOOK_FILTE(uri, data)
 #define ORACLE_DAPPSERVICE_ACTIONS_MORE() \
 TABLE oracleentry {  \
    uint64_t                      id; \
@@ -94,10 +96,14 @@ static void updateOracleResult(std::vector<char> uri, name provider, std::vector
     provider_result new_result;\
     new_result.provider = provider;\
     new_result.result = result;\
-    if(existing != cidx.end())\
+    if(existing != cidx.end()) {\
+        auto existing_provider_result = existing->results;\
+        for(provider_result i : existing_provider_result)   /* ensure that each provider only returns one response */ \
+            eosio::check(i.provider != provider, "duplicate provider detected in responses, a provider may only return one response");\
         cidx.modify(existing,_self, [&]( auto& a ) {  \
                     a.results.emplace_back(new_result);\
         }); \
+    } \
     else entries.emplace(_self, [&]( auto& a ) {  \
                 a.id = entries.available_primary_key();  \
                 a.uri = uri;  \
@@ -105,6 +111,7 @@ static void updateOracleResult(std::vector<char> uri, name provider, std::vector
     }); \
 }  \
 SVC_RESP_ORACLE(geturi)(uint32_t size,std::vector<char> uri,std::vector<char> data, name current_provider){ \
+    ORACLE_HOOK_FILTER(uri, data) \
     updateOracleResult(uri, current_provider, data); \
 } \
 SVC_RESP_ORACLE(orcclean)(uint32_t size, std::vector<char> uri, name current_provider){ \
@@ -113,4 +120,4 @@ SVC_RESP_ORACLE(orcclean)(uint32_t size, std::vector<char> uri, name current_pro
     auto cidx = entries.get_index<"byhash"_n>(); \
     auto existing = cidx.find(hashData(uri)); \
     if(existing != cidx.end()) cidx.erase(existing); \
-}
+} 

@@ -184,6 +184,12 @@
                "type":"account_name"
             }
          ]
+      },
+      {
+         "name":"deletedata",
+         "base":"",
+         "fields":[
+         ]
       }
    ],
    "actions":[
@@ -225,6 +231,11 @@
       {
          "name":"issuerrem",
          "type":"issuerrem",
+         "ricardian_contract":""
+      },
+      {
+         "name":"deletedata",
+         "type":"deletedata",
          "ricardian_contract":""
       }
    ],

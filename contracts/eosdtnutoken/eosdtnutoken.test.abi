@@ -161,34 +161,34 @@
             }
          ]
       },
-        {
-            "name":"nutlocks",
-            "base":"",
-            "fields":[
+       {
+           "name":"nutlocks",
+           "base":"",
+           "fields":[
+              {
+                 "name":"account",
+                 "type":"account_name"
+              }
+           ]
+       },
+       {
+           "name":"nutparams",
+           "base":"",
+           "fields":[
                {
-                  "name":"account",
-                  "type":"account_name"
-               }
-            ]
-        },
-        {
-            "name":"nutparams",
-            "base":"",
-            "fields":[
-                {
-                   "name":"param_id",
-                   "type":"uint64"
-                },
-                {
-                   "name":"burnt_supply",
+                  "name":"param_id",
+                  "type":"uint64"
+               },
+               {
+                  "name":"burnt_supply",
+                  "type":"asset"
+               },
+               {
+                   "name":"locked_supply",
                    "type":"asset"
-                },
-                {
-                    "name":"locked_supply",
-                    "type":"asset"
-                }
-            ]
-        },
+               }
+           ]
+       },
         {
             "name":"lockacc",
             "base":"",
@@ -203,48 +203,30 @@
             "name":"unlockacc",
             "base":"",
             "fields":[
-                 {
-                    "name":"unlock_list",
-                    "type":"account_name[]"
-                 }
-            ]
+                  {
+                     "name":"unlock_list",
+                     "type":"account_name[]"
+                  }
+             ]
         },
         {
-            "name":"paraminit",
-            "base":"",
-            "fields":[
-                 {
-                    "name":"checksumm",
-                    "type":"asset"
-                 }
-            ]
+             "name":"paraminit",
+             "base":"",
+             "fields":[
+                  {
+                     "name":"checksumm",
+                     "type":"asset"
+                  }
+             ]
         },
         {
-            "name":"empty",
-            "base":"",
-            "fields":[
-                ]
-        },
-        {
-                 "name":"nutstables",
-                 "base":"",
-                 "fields":[
-                  {
-                     "name":"account",
-                     "type":"account_name"
-                  },
-                  {
-                     "name":"is_own",
-                     "type":"uint8"
-                  },
-                  {
-                      "name":"peg",
-                      "type":"string"
-                   }
-                 ]
-             },
+             "name":"empty",
+             "base":"",
+             "fields":[
+             ]
+          },
             {
-                "name":"stableadd",
+                "name":"nutstables",
                 "base":"",
                 "fields":[
                  {
@@ -261,17 +243,41 @@
                   }
                 ]
             },
-             {
-                 "name":"stablerem",
-                 "base":"",
-                 "fields":[
-                  {
-                     "name":"account",
-                     "type":"account_name"
-                  }
-                 ]
-             }
-     ],
+           {
+               "name":"stableadd",
+               "base":"",
+               "fields":[
+                {
+                   "name":"account",
+                   "type":"account_name"
+                },
+                {
+                   "name":"is_own",
+                   "type":"uint8"
+                },
+                {
+                    "name":"peg",
+                    "type":"string"
+                 }
+               ]
+           },
+            {
+                "name":"stablerem",
+                "base":"",
+                "fields":[
+                 {
+                    "name":"account",
+                    "type":"account_name"
+                 }
+                ]
+            },
+      {
+         "name":"deletedata",
+         "base":"",
+         "fields":[
+         ]
+      }
+    ],
    "actions":[
       {
          "name":"transfer",
@@ -308,31 +314,36 @@
          "type":"receive",
          "ricardian_contract":""
       },
-        {
-           "name":"lockacc",
-           "type":"lockacc",
+       {
+          "name":"lockacc",
+          "type":"lockacc",
+          "ricardian_contract":""
+       },
+       {
+           "name":"unlockacc",
+           "type":"unlockacc",
            "ricardian_contract":""
-        },
-        {
-            "name":"unlockacc",
-            "type":"unlockacc",
-            "ricardian_contract":""
-        },
+       },
         {
             "name":"paraminit",
             "type":"paraminit",
             "ricardian_contract":""
         },
-        {
-            "name":"stableadd",
-            "type":"stableadd",
-            "ricardian_contract":""
-        },
          {
-             "name":"stablerem",
-             "type":"stablerem",
+             "name":"stableadd",
+             "type":"stableadd",
              "ricardian_contract":""
-         }
+         },
+          {
+              "name":"stablerem",
+              "type":"stablerem",
+              "ricardian_contract":""
+          },
+      {
+         "name":"deletedata",
+         "type":"deletedata",
+         "ricardian_contract":""
+      }
    ],
    "tables":[
       {
@@ -357,39 +368,39 @@
             "uint64"
          ]
       },
-      {
-           "name":"nutlocks",
-           "type":"nutlocks",
-           "index_type":"i64",
-           "key_names":[
-              "account"
-           ],
-           "key_types":[
-              "uint64"
-           ]
-      },
-      {
-            "name":"nutparams",
-            "type":"nutparams",
-            "index_type":"i64",
-            "key_names":[
-             "param_id"
-            ],
-            "key_types":[
-             "uint64"
-            ]
-      },
         {
-           "name":"nutstables",
-           "type":"nutstables",
+          "name":"nutlocks",
+          "type":"nutlocks",
+          "index_type":"i64",
+          "key_names":[
+             "account"
+          ],
+          "key_types":[
+             "uint64"
+          ]
+        },
+        {
+           "name":"nutparams",
+           "type":"nutparams",
            "index_type":"i64",
            "key_names":[
-            "account"
+            "param_id"
            ],
            "key_types":[
             "uint64"
            ]
-        }
+        },
+         {
+            "name":"nutstables",
+            "type":"nutstables",
+            "index_type":"i64",
+            "key_names":[
+             "account"
+            ],
+            "key_types":[
+             "uint64"
+            ]
+         }
    ],
    "ricardian_clauses":[
 

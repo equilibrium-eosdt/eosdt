@@ -3,7 +3,7 @@
 
 namespace eosdt {
     void eosdtorclize::queryadd(const ds_symbol &symbol, const ds_account &source_contract, const ds_string &query,
-                                const uint8_t price_type, const ds_symbol &base) {
+                                const uint8_t price_type, const ds_symbol &base, const double filter) {
         PRINT_STARTED("queryadd"_n)
         require_auth(_self);
 
@@ -28,6 +28,7 @@ namespace eosdt {
                     row.asset_symbol = symbol;
                     row.query = query;
                     row.price_type = price_type;
+                    row.filter = filter;
 
                     row.query_updated_at = updated_at;
                     row.query_executed_at = ds_time(0);
@@ -50,6 +51,7 @@ namespace eosdt {
                 row.query = query;
                 row.price_type = price_type;
                 row.base = base;
+                row.filter = filter;
 
                 row.query_updated_at = updated_at;
                 row.query_executed_at = ds_time(0);

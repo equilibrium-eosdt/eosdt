@@ -1,7 +1,12 @@
 #pragma once
 
+
 #ifndef ds_account
 #define ds_account eosio::name
+#endif
+
+#ifndef SAME_PAYER
+#define SAME_PAYER ds_account(0)
 #endif
 
 #ifndef ds_asset
@@ -15,8 +20,6 @@
 #ifndef ds_string
 #define ds_string std::string
 #endif
-
-#define DELETEDATA
 
 #include <eosio/asset.hpp>
 #include <eosio/eosio.hpp>

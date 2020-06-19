@@ -8,6 +8,7 @@
 #include <eosio/privileged.hpp>
 #include <eosio/binary_extension.hpp>
 
+
 #define ds_int int
 #define ds_uint unsigned int
 #define ds_ulong unsigned long long
@@ -24,6 +25,7 @@ constexpr static ds_uint MONTHS_IN_SECONDS = (ds_uint) (365.25 * 24 * 60 * 60 / 
 #define RATES_UPDATE_SECONDS 300
 #define RATES_OUTDATED_SECONDS 21600
 #define POSITIVEINFINITY 999999999.0L
+#define MAXSUBSCRIBERS 100
 
 #define ds_time eosio::time_point_sec
 #define ds_account eosio::name
@@ -33,8 +35,8 @@ constexpr static ds_uint MONTHS_IN_SECONDS = (ds_uint) (365.25 * 24 * 60 * 60 / 
 #define ds_public_key eosio::public_key
 #define N(X) name{#X}
 
-#define PRINT_STARTED(ACTION)
-#define PRINT_FINISHED(ACTION)
+#define PRINT_STARTED(ACTION) ds_print("\r\n[%](%) % started.", __LINE__,__FILE__,ACTION);
+#define PRINT_FINISHED(ACTION) ds_print("\r\n[%](%) % finished.", __LINE__,__FILE__,ACTION);
 
 
 #define EOS_SYMBOL_STR "EOS"
@@ -57,7 +59,7 @@ constexpr static ds_uint MONTHS_IN_SECONDS = (ds_uint) (365.25 * 24 * 60 * 60 / 
 #define DAPP_SYMBOL_DECIMAL 4
 #define KG_SYMBOL_STR "KGRAM"
 #define KG_SYMBOL_PAD_STR " " KG_SYMBOL_STR
-#define KG_SYMBOL_DECIMAL 4
+#define KG_SYMBOL_DECIMAL 8
 
 #define EOSCTRACT_STR "eosio.token"
 #define EOSDTCNTRACT_STR "eosdtcntract"
@@ -79,6 +81,7 @@ constexpr static ds_uint MONTHS_IN_SECONDS = (ds_uint) (365.25 * 24 * 60 * 60 / 
 #define EOSDTLOCKUPP "eosdtlockupp"_n
 #define EOSDTKGTOKEN "eosdtkgtoken"_n
 #define EOSDTPOSCONT "eosdtposcont"_n
+#define EOSDTSAVINGS "eosdtsavings"_n
 
 #define BLOCKPRODUCEPROPOSAL "blockproduce"_n
 

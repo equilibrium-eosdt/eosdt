@@ -21,14 +21,13 @@ namespace eosdt {
     typedef eosio::multi_index<"rexfund"_n, rexfund> rexfund_table;
 
     typedef eosio::multi_index<"orasettings"_n, orasettings> orasettings_table;
-    typedef eosio::multi_index<"orarates"_n, orarate_old> orarates_old_table;
     typedef eosio::multi_index<"oraclerates"_n, orarate,
             eosio::indexed_by<"ratebase"_n, eosio::const_mem_fun < orarate, __uint128_t, &orarate::by_rate_base>>> orarates_table;
 
-    typedef eosio::multi_index<"oraqueries"_n, oraqueries_old> oraqueries_old_table;
     typedef eosio::multi_index<"oraclqueries"_n, oraqueries,
     eosio::indexed_by<"assetsource"_n, eosio::const_mem_fun < oraqueries, __uint128_t, &oraqueries::by_asset_source>>> oraqueries_table;
-    typedef eosio::multi_index<"subscribers"_n, orasubscribe> orasubscribers_table;
+    typedef eosio::multi_index<"subscribers"_n, orasubscribe,
+            eosio::indexed_by<"assetcntract"_n, eosio::const_mem_fun < orasubscribe, __uint128_t, &orasubscribe::by_asset_contract>>> orasubscribers_table;
 
     typedef eosio::multi_index<"ctrsettings"_n, ctrsetting> ctrsettings_table;
     typedef eosio::multi_index<"ctrsettings"_n, ctrsetting_time> ctrsettings_time_table;
@@ -96,4 +95,10 @@ namespace eosdt {
     typedef eosio::multi_index<"defideas"_n, defiidea,eosio::indexed_by<"byname"_n,
             eosio::const_mem_fun < defiidea, ds_checksum, &defiidea::by_name>>> defiideas_table;
     typedef eosio::multi_index<"defideavotrs"_n, defiideavoter> defiideavoters_table;
+
+    typedef eosio::multi_index<"savsettings"_n, savsetting> savsettings_table;
+    typedef eosio::multi_index<"savparams"_n, savparam> savparams_table;
+    typedef eosio::multi_index<"savpositions"_n, savposition,
+            eosio::indexed_by<"byowner"_n, eosio::const_mem_fun < savposition, uint64_t, &savposition::get_owner>>>
+    savpositions_table;
 }

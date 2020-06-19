@@ -2,33 +2,6 @@
 
 namespace eosdt {
 
-    void eosdtgovernc::bpregister(const ds_account &bp_name, const ds_asset &reward_amount) {
-        PRINT_STARTED("bpregister"_n)
-        auto payer = _self;
-        if (!has_auth(_self)) {
-            require_auth(bp_name);
-            payer = bp_name;
-        }
-        auto min_reward = govparam_get().min_reward;
-        if(isbpintop(bp_name)){
-            min_reward = op_mul_ceil(min_reward,1.0L/(1.0L-10000.0L/votepay_factor_get()));
-        }
-        ds_assert(reward_amount >= min_reward, "Wrong reward_amount: % expected more or equal min_reward: %.",
-                  reward_amount, min_reward);
-        govbpparams_table govbpparams(_self, _self.value);
-        auto itr = govbpparams.find(bp_name.value);
-        ds_assert(itr == govbpparams.end(), "bp_name: % already exists", bp_name);
-        govbpparams.emplace(payer, [&](auto &row) {
-            row.bp_name = bp_name;
-            row.reward_amount = reward_amount;
-            row.balance = ds_asset(0, EOS_SYMBOL);
-            row.enabled = false;
-            row.is_active = false;
-        });
-        reinit();
-        PRINT_FINISHED("bpregister"_n)
-    }
-
     void eosdtgovernc::bpsetparams(const ds_account &bp_name, const ds_asset &reward_amount) {
         PRINT_STARTED("bpsetparams"_n)
         auto payer = ds_account(0);
@@ -36,41 +9,34 @@ namespace eosdt {
             require_auth(bp_name);
             payer = bp_name;
         }
-        auto min_reward = govparam_get().min_reward;
-        if(isbpintop(bp_name)){
-            min_reward = op_mul_ceil(min_reward,1.0l/(1.0l-10000.0l/votepay_factor_get()));
-        }
-        ds_assert(reward_amount >= min_reward, "Wrong reward_amount: % expected more or equal min_reward: %.",
+        auto min_reward = ds_asset(1, EOS_SYMBOL);
+        ds_assert(reward_amount >= min_reward, "wrong reward_amount(%), expected >= %",
                   reward_amount, min_reward);
-        {
-            govbpparams_table govbpparams(_self, _self.value);
-            auto itr = govbpparams.find(bp_name.value);
-            ds_assert(itr != govbpparams.end(), "bp_name: % does not exists.", bp_name);
-            ds_assert((payer != bp_name) || (itr->reward_amount < reward_amount),
-                      "rewards % may not be decreased to %.",
-                      itr->reward_amount, reward_amount);
-        }
+
         reinit();
-        {
-            govbpparams_table govbpparams(_self, _self.value);
-            auto itr = govbpparams.find(bp_name.value);
-            govbpparams.modify(itr, payer, [&](auto &row) {
-                row.reward_amount = reward_amount;
-            });
-        }
+
+        govbpparams_table govbpparams(_self, _self.value);
+        auto itr = govbpparams.find(bp_name.value);
+        ds_assert(itr != govbpparams.end(), "bp_name: % does not exist.", bp_name);
+        govbpparams.modify(itr, payer, [&](auto &row) {
+            row.reward_amount = reward_amount;
+        });
+
         PRINT_FINISHED("bpsetparams"_n)
     }
 
     void eosdtgovernc::bpunregister(const ds_account &bp_name) {
         PRINT_STARTED("bpunregister"_n)
+        auto payer = ds_account(0);
         if (!has_auth(_self)) {
             require_auth(bp_name);
+            payer = bp_name;
         }
         {
             govbpparams_table govbpparams(_self, _self.value);
             auto itr = govbpparams.find(bp_name.value);
-            ds_assert(itr != govbpparams.end(), "bp_name: % does not exists.", bp_name);
-            govbpparams.modify(itr, ds_account(0), [&](auto &row) {
+            ds_assert(itr != govbpparams.end(), "bp_name: % does not exist.", bp_name);
+            govbpparams.modify(itr, payer, [&](auto &row) {
                 row.enabled = false;
             });
         }
@@ -80,7 +46,7 @@ namespace eosdt {
         {
             govbpparams_table govbpparams(_self, _self.value);
             auto itr = govbpparams.find(bp_name.value);
-            govbpparams.modify(itr, ds_account(0), [&](auto &row) {
+            govbpparams.modify(itr, payer, [&](auto &row) {
                 trans(bp_name, row.balance, "bpunregister");
                 row.balance = ds_asset(0, EOS_SYMBOL);
                 row.is_active = false;
@@ -89,19 +55,44 @@ namespace eosdt {
         PRINT_FINISHED("bpunregister"_n)
     }
 
-    void eosdtgovernc::bpdeposit(const ds_string &bp_name_str, const ds_asset &quantity) {
+    void eosdtgovernc::bpdeposit(const ds_string &producer_name, const ds_asset &quantity) {
         PRINT_STARTED("bpdeposit"_n)
-        ds_account bp_name(bp_name_str);
+        ds_account bp_name(producer_name);
+        auto reward = govparam_get().min_reward;
+        if (isbpintop(bp_name)){
+            reward = op_mul_ceil(reward,1.0L/(1.0L-10000.0L/votepay_factor_get()));
+        }
+
         govbpparams_table govbpparams(_self, _self.value);
         auto itr = govbpparams.find(bp_name.value);
-        ds_assert(itr != govbpparams.end(), "bp_name: % does not exists.", bp_name);
-        ds_assert(quantity+itr->balance >= itr->reward_amount, "wrong amount % + (balance)% expected >= %",
-                quantity,itr->balance,itr->reward_amount);
-        govbpparams.modify(itr, ds_account(0), [&](auto &row) {
-            row.balance += quantity;
-            row.enabled = true;
-            ds_print("\r\nbp_name: %, enabled: %, balance: %", bp_name, row.enabled, row.balance);
-        });
+        if (itr != govbpparams.end()) {
+            ds_assert(quantity + itr->balance >= reward, "wrong amount(%) + balance(%), expected >= %",
+                      quantity, itr->balance, reward);
+
+            govbpparams.modify(itr, ds_account(0), [&](auto &row) {
+                row.balance += quantity;
+                row.enabled = true;
+                ds_print("\r\nbp_name: %, enabled: %, balance: %", bp_name, row.enabled, row.balance);
+            });
+        }
+        else {
+            sysproducers_table sysproducers("eosio"_n, ("eosio"_n).value);
+            auto producer = sysproducers.find(bp_name.value);
+            ds_assert(producer != sysproducers.end(), "producer '%' isn't registered.", producer_name);
+            ds_assert(producer->producer_key != ds_public_key() && producer->is_active,
+                      "producer '%' isn't active.", producer_name);
+
+            ds_assert(quantity >= reward, "wrong amount(%), expected >= %",
+                      quantity, reward);
+
+            govbpparams.emplace(_self, [&](auto &row) {
+                row.bp_name = bp_name;
+                row.reward_amount = reward;
+                row.balance = quantity;
+                row.enabled = true;
+                row.is_active = false;
+            });
+        }
 
         PRINT_FINISHED("bpdeposit"_n)
     }
@@ -113,38 +104,31 @@ namespace eosdt {
         auto govsettings = govsetting_get();
         auto min_reward = govparam_get().min_reward;
         auto top21_reward = op_mul_ceil(min_reward,1.0l/(1.0l-10000.0l/votepay_factor_get()));
+        ds_print("\r\nmin_reward: %, top21_reward: %", min_reward, top21_reward);
         govbpparams_table govbpparams(_self, _self.value);
         for (auto itr = govbpparams.begin(); itr != govbpparams.end(); itr++) {
-
-            if (!itr->is_active) {
-                ds_print("\r\nbp_name: %, enabled: %, is_active: %", itr->bp_name, itr->enabled, itr->is_active);
+            auto period = (time - itr->active_since).to_seconds();
+            if (!itr->is_active || period <= 0) {
+                ds_print("\r\nbp_name: %, enabled: %, is_active: %, period: %",
+                        itr->bp_name, itr->enabled, itr->is_active, period);
                 continue;
             }
+
             auto reward = isbpintop(itr->bp_name) ? top21_reward : min_reward;
             govbpparams.modify(itr, ds_account(0), [&](auto &row) {
-                auto current = total_payable;
-                auto period = (time - itr->active_since).to_seconds();
-                if(period > 0)
-                {
-                    if (reward < row.reward_amount) {
-                        reward = row.reward_amount;
-                    }
-                    reward = op_div_floor(reward * period, 24 * 3600);
-                    if(row.balance > reward)
-                    {
-                        total_payable += reward;
-                        row.balance -= reward;
-                    } else {
-                        total_payable+=row.balance;
-                        row.balance.amount=0;
-                    }
+                if (reward < row.reward_amount) {
+                    reward = row.reward_amount;
                 }
-                if(row.balance.amount <= 0)
-                {
+                reward = op_div_floor(reward * period, 24 * 3600);
+                if (reward >= row.balance) {
+                    reward = row.balance;
                     row.enabled = false;
                 }
-                ds_print("\r\nbp_name: %, enabled: %, period: %, reward: %, balance: %, reward_by_period: %",
-                        row.bp_name, row.enabled,  period, row.reward_amount, row.balance,total_payable-current);
+                total_payable += reward;
+                row.balance -= reward;
+                ds_print(
+                        "\r\nbp_name: %, enabled: %, active_since: %, period: %, reward: %, balance: %, reward_by_period: %",
+                        row.bp_name, row.enabled, row.active_since, period, row.reward_amount, row.balance, reward);
             });
         };
         if (total_payable.amount > 0) {

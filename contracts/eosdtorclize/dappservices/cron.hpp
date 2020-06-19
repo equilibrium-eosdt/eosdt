@@ -8,10 +8,10 @@
 
 #ifdef LIQUIDX
 
-#define SVC_CONTRACT_NAME_CRON SVC_CONTRACT_NAME_CRON_undefined
+#define SVC_CONTRACT_NAME_CRON SVC_CONTRACT_NAME_CRON_undefined 
 
 #else
-#define SVC_CONTRACT_NAME_CRON cronservices
+#define SVC_CONTRACT_NAME_CRON cronservices 
 
 #endif
 
@@ -35,7 +35,7 @@ static void svc_cron_schedule(name timer, std::vector<char> payload, uint32_t se
 #ifdef CRON_DAPPSERVICE_ACTIONS_MORE
 #define CRON_DAPPSERVICE_ACTIONS \
   CRON_DAPPSERVICE_BASE_ACTIONS \
-  CRON_DAPPSERVICE_ACTIONS_MORE()
+  CRON_DAPPSERVICE_ACTIONS_MORE() 
 
 
 #else
